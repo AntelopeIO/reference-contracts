@@ -2,8 +2,8 @@
 #include <eosio.token/eosio.token.hpp>
 
 // TELOS ADDITIONS
-// #include "system_kick.cpp"
-#define MAX_PRODUCERS 42     // revised for TEDP 2 Phase 2, also set in system_rotation.cpp, change in both places
+#include "system_kick.cpp"
+#include "telos.hpp"
 
 namespace eosiosystem {
 
@@ -35,7 +35,6 @@ namespace eosiosystem {
               _gstate.thresh_activated_stake_time = current_time_point();
               _gstate.last_claimrewards = timestamp.slot;
           }
-      }
           return;
       }
      

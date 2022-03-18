@@ -16,6 +16,11 @@
 #include <algorithm>
 #include <cmath>
 
+// TELOS ADDITION
+#include <boost/container/flat_map.hpp>
+#include "system_rotation.cpp"
+#include "telos.hpp"
+
 namespace eosiosystem {
 
    using eosio::const_mem_fun;
@@ -55,7 +60,7 @@ namespace eosiosystem {
             auto now = block_timestamp(ct);
             block_timestamp penalty_expiration_time = block_timestamp(
                 info.last_time_kicked.to_time_point() +
-                time_point(hours(int64_t(info.kick_penalty_hours))));
+                time_point(eosio::hours(int64_t(info.kick_penalty_hours))));
             
             check(now.slot > penalty_expiration_time.slot,
                std::string("Producer is not allowed to register at this time. Please fix your node and try again later in: " 
@@ -201,7 +206,7 @@ namespace eosiosystem {
 
       auto schedule_version = set_proposed_producers(top_producers);
       if (schedule_version >= 0) {
-        print("\n**new schedule was proposed**");
+        eosio::print("\n**new schedule was proposed**");
         
         _gstate.last_proposed_schedule_update = block_time;
 

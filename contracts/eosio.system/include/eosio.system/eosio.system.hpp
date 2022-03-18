@@ -16,6 +16,9 @@
 #include <string>
 #include <type_traits>
 
+// TELOS ADDITION: needed for std::pow
+#include <cmath>
+
 #ifdef CHANNEL_RAM_AND_NAMEBID_FEES_TO_REX
 #undef CHANNEL_RAM_AND_NAMEBID_FEES_TO_REX
 #endif
@@ -1355,6 +1358,8 @@ namespace eosiosystem {
          [[eosio::action]]
          void voteproducer( const name& voter, const name& proxy, const std::vector<name>& producers );
 
+         // TELOS DELETION
+         /*
          /**
           * Update the vote weight for the producers or proxy `voter_name` currently votes for. This will also
           * update the `staked` value for the `voter_name` by checking `rexbal` and all delegated NET and CPU. 
@@ -1364,9 +1369,10 @@ namespace eosiosystem {
           * @post the voter.staked will be updated
           * @post previously voted for producers vote weight will be updated with new weight
           * @post previously voted for proxy vote weight will be updated with new weight
-          */
+          *
          [[eosio::action]]
          void voteupdate( const name& voter_name );
+         */
 
          /**
           * Register proxy action, sets `proxy` account as proxy.
@@ -1565,7 +1571,8 @@ namespace eosiosystem {
          using setram_action = eosio::action_wrapper<"setram"_n, &system_contract::setram>;
          using setramrate_action = eosio::action_wrapper<"setramrate"_n, &system_contract::setramrate>;
          using voteproducer_action = eosio::action_wrapper<"voteproducer"_n, &system_contract::voteproducer>;
-         using voteupdate_action = eosio::action_wrapper<"voteupdate"_n, &system_contract::voteupdate>;
+         // TELOS DELETION
+         // using voteupdate_action = eosio::action_wrapper<"voteupdate"_n, &system_contract::voteupdate>;
          using regproxy_action = eosio::action_wrapper<"regproxy"_n, &system_contract::regproxy>;
          using claimrewards_action = eosio::action_wrapper<"claimrewards"_n, &system_contract::claimrewards>;
          using rmvproducer_action = eosio::action_wrapper<"rmvproducer"_n, &system_contract::rmvproducer>;
@@ -1582,19 +1589,19 @@ namespace eosiosystem {
 
          // BEGIN TELOS ADDITION
          [[eosio::action]]
-         void unregreason( const name producer, std::string reason );
+         void unregreason( const name& producer, std::string reason );
 
-         [[eosio::action]]
-         void rexlimit( double limit_percentage );
+         // [[eosio::action]]
+         // void rexlimit( double limit_percentage );
          
-         [[eosio::action]]
-         void addrexwlist( const name& allowed );
+         // [[eosio::action]]
+         // void addrexwlist( const name& allowed );
          
-         [[eosio::action]]
-         void remrexwlist( const name& allowed );
+         // [[eosio::action]]
+         // void remrexwlist( const name& allowed );
          
-         [[eosio::action]]
-         void clearconf();
+         // [[eosio::action]]
+         // void clearconf();
 
          [[eosio::action]]
          void votebpout(name bp, uint32_t penalty_hours);
@@ -1607,10 +1614,10 @@ namespace eosiosystem {
 
 
          using unregreason_action = eosio::action_wrapper<"unregreason"_n, &system_contract::unregreason>;
-         using rexlimit_action = eosio::action_wrapper<"rexlimit"_n, &system_contract::rexlimit>;
-         using addrexwlist_action = eosio::action_wrapper<"addrexwlist"_n, &system_contract::addrexwlist>;
-         using remrexwlist_action = eosio::action_wrapper<"remrexwlist"_n, &system_contract::remrexwlist>;
-         using clearconf_action = eosio::action_wrapper<"clearconf"_n, &system_contract::clearconf>;
+         // using rexlimit_action = eosio::action_wrapper<"rexlimit"_n, &system_contract::rexlimit>;
+         // using addrexwlist_action = eosio::action_wrapper<"addrexwlist"_n, &system_contract::addrexwlist>;
+         // using remrexwlist_action = eosio::action_wrapper<"remrexwlist"_n, &system_contract::remrexwlist>;
+         // using clearconf_action = eosio::action_wrapper<"clearconf"_n, &system_contract::clearconf>;
          using votebpout_action = eosio::action_wrapper<"votebpout"_n, &system_contract::votebpout>;
          using setpayrates_action = eosio::action_wrapper<"setpayrates"_n, &system_contract::setpayrates>;
          using distviarex_action = eosio::action_wrapper<"distviarex"_n, &system_contract::distviarex>;
@@ -1738,7 +1745,7 @@ namespace eosiosystem {
          bool crossed_missed_blocks_threshold(uint32_t amountBlocksMissed, uint32_t schedule_size);
          void reset_schedule_metrics(name producer);
          void update_producer_missed_blocks(name producer);
-         bool is_new_schedule_activated(capi_name active_schedule[], uint32_t size);
+         bool is_new_schedule_activated(name active_schedule[], uint32_t size);
          bool is_new_schedule_activated(std::vector<name>& schedule);
          bool check_missed_blocks(block_timestamp timestamp, name producer);
 

@@ -384,10 +384,10 @@ namespace eosiosystem {
       changebw( from, receiver, stake_net_quantity, stake_cpu_quantity, transfer);
 
       // TELOS ADDITION
-+     //notify telos decide of stake change
-+     if (from == receiver) {
-+        require_recipient("telos.decide"_n);
-+     }
+      //notify telos decide of stake change
+      if (from == receiver) {
+         require_recipient("telos.decide"_n);
+      }
    } // delegatebw
 
    void system_contract::undelegatebw( const name& from, const name& receiver,
