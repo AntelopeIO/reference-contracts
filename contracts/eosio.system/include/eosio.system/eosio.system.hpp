@@ -280,6 +280,7 @@ namespace eosiosystem {
       return eosio::block_signing_authority_v0{ .threshold = 1, .keys = {{producer_key, 1}} };
    }
 
+   // TELOS ADDITION
    enum class kick_type {
        REACHED_TRESHOLD = 1,
        //  PREVENT_LIB_STOP_MOVING = 2,

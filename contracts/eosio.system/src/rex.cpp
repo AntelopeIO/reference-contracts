@@ -43,7 +43,8 @@ namespace eosiosystem {
 
       check( amount.symbol == core_symbol(), "asset must be core token" );
       check( 0 < amount.amount, "must use positive amount" );
-      check_voting_requirement( from );
+      // TELOS SPECIFIC: Remove requirement to vote 21 BPs or select a proxy to stake to REX
+      // check_voting_requirement( from );
       transfer_from_fund( from, amount );
       const asset rex_received    = add_to_rex_pool( amount );
       const asset delta_rex_stake = add_to_rex_balance( from, amount, rex_received );
@@ -61,7 +62,8 @@ namespace eosiosystem {
       check( from_net.symbol == core_symbol() && from_cpu.symbol == core_symbol(), "asset must be core token" );
       check( (0 <= from_net.amount) && (0 <= from_cpu.amount) && (0 < from_net.amount || 0 < from_cpu.amount),
              "must unstake a positive amount to buy rex" );
-      check_voting_requirement( owner );
+      // TELOS SPECIFIC: Remove requirement to vote 21 BPs or select a proxy to stake to REX
+      // check_voting_requirement( owner );
 
       {
          del_bandwidth_table dbw_table( get_self(), owner.value );
@@ -453,13 +455,20 @@ namespace eosiosystem {
     */
    void system_contract::add_loan_to_rex_pool( const asset& payment, int64_t rented_tokens, bool new_loan )
    {
-      add_to_rex_return_pool( payment );
+      add_to_rex_return_pool( payment ); // NOT IN TELOS 
       _rexpool.modify( _rexpool.begin(), same_payer, [&]( auto& rt ) {
          // add payment to total_rent
          rt.total_rent.amount    += payment.amount;
          // move rented_tokens from total_unlent to total_lent
          rt.total_unlent.amount  -= rented_tokens;
          rt.total_lent.amount    += rented_tokens;
+
+         // BEGIN TELOS SPECIFIC
+         // add payment to total_unlent
+         rt.total_unlent.amount  += payment.amount;
+         rt.total_lendable.amount = rt.total_unlent.amount + rt.total_lent.amount;
+         // END TELOS SPECIFIC
+
          // increment loan_num if a new loan is being created
          if ( new_loan ) {
             rt.loan_num++;
@@ -512,7 +521,7 @@ namespace eosiosystem {
    {
       check( rex_system_initialized(), "rex system not initialized yet" );
 
-      update_rex_pool();
+      update_rex_pool(); // NOT IN TELOS
 
       const auto& pool = _rexpool.begin();
 
@@ -785,8 +794,12 @@ namespace eosiosystem {
       asset stake_change( 0, core_symbol() );
       bool  success = false;
 
-      const int64_t unlent_lower_bound = rexpool_itr->total_lent.amount / 10;
+      // mandel:
+      // const int64_t unlent_lower_bound = rexitr->total_lent.amount / 10;
+      // TELOS SPECIFIC
+      const int64_t unlent_lower_bound = ( uint128_t(2) * rexitr->total_lent.amount ) / 10;
       const int64_t available_unlent   = rexpool_itr->total_unlent.amount - unlent_lower_bound; // available_unlent <= 0 is possible
+
       if ( proceeds.amount <= available_unlent ) {
          const int64_t init_vote_stake_amount = bitr->vote_stake.amount;
          const int64_t current_stake_value    = ( uint128_t(bitr->rex_balance.amount) * S0 ) / R0;
@@ -927,6 +940,14 @@ namespace eosiosystem {
 #if CHANNEL_RAM_AND_NAMEBID_FEES_TO_REX
       if ( rex_available() ) {
          add_to_rex_return_pool( amount );
+
+         // BEGIN TELOS SPECIFIC
+         _rexpool.modify( _rexpool.begin(), same_payer, [&]( auto& rp ) {
+            rp.total_unlent.amount   += amount.amount;
+            rp.total_lendable.amount += amount.amount;
+         });
+         // END TELOS SPECIFIC
+ 
          // inline transfer to rex_account
          token::transfer_action transfer_act{ token_account, { from, active_permission } };
          transfer_act.send( from, rex_account, amount,

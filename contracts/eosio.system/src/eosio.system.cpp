@@ -30,12 +30,32 @@ namespace eosiosystem {
     _rexretbuckets(get_self(), get_self().value),
     _rexfunds(get_self(), get_self().value),
     _rexbalance(get_self(), get_self().value),
-    _rexorders(get_self(), get_self().value)
+    _rexorders(get_self(), get_self().value),
+
+    // BEGIN TELOS ADDITIONS
+    _schedule_metrics(get_self(), get_self().value),
+    _rotation(get_self(), get_self().value),
+    _payrate(get_self(), get_self().value),
+    _payments(get_self(), get_self().value)
+    // END TELOS ADDITIONS
    {
       _gstate  = _global.exists() ? _global.get() : get_default_parameters();
       _gstate2 = _global2.exists() ? _global2.get() : eosio_global_state2{};
       _gstate3 = _global3.exists() ? _global3.get() : eosio_global_state3{};
       _gstate4 = _global4.exists() ? _global4.get() : get_default_inflation_parameters();
+
+      // TELOS SPECIFIC
+      _gschedule_metrics = _schedule_metrics.get_or_create(
+          get_self(),
+          schedule_metrics_state{ name(0), 0, std::vector<producer_metric>() });
+
+      _grotation = _rotation.get_or_create(
+          get_self(),
+          rotation_state{ name(0), name(0), 21, 75, block_timestamp(), block_timestamp() });
+
+      _gpayrate = _payrate.get_or_create(
+          get_self(),
+          payrates{ max_bpay_rate, max_worker_monthly_amount });
    }
 
    eosio_global_state system_contract::get_default_parameters() {
@@ -62,6 +82,11 @@ namespace eosiosystem {
       _global2.set( _gstate2, get_self() );
       _global3.set( _gstate3, get_self() );
       _global4.set( _gstate4, get_self() );
+
+      // TELOS SPECIFIC
+      _schedule_metrics.set(_gschedule_metrics, get_self());
+      _rotation.set(_grotation, get_self());
+      _payrate.set(_gpayrate, get_self());
    }
 
    void system_contract::setram( uint64_t max_ram_size ) {
@@ -84,13 +109,14 @@ namespace eosiosystem {
       _gstate.max_ram_size = max_ram_size;
    }
 
+   // TELOS SPECIFIC: changed to use _gstate instead of _gstate2
    void system_contract::update_ram_supply() {
       auto cbt = eosio::current_block_time();
 
-      if( cbt <= _gstate2.last_ram_increase ) return;
+      if( cbt <= _gstate.last_ram_increase ) return;
 
       auto itr = _rammarket.find(ramcore_symbol.raw());
-      auto new_ram = (cbt.slot - _gstate2.last_ram_increase.slot)*_gstate2.new_ram_per_block;
+      auto new_ram = (cbt.slot - _gstate.last_ram_increase.slot)*_gstate.new_ram_per_block;
       _gstate.max_ram_size += new_ram;
 
       /**
@@ -99,14 +125,15 @@ namespace eosiosystem {
       _rammarket.modify( itr, same_payer, [&]( auto& m ) {
          m.base.balance.amount += new_ram;
       });
-      _gstate2.last_ram_increase = cbt;
+      _gstate.last_ram_increase = cbt;
    }
 
+   // TELOS SPECIFIC: changed to use _gstate instead of _gstate2
    void system_contract::setramrate( uint16_t bytes_per_block ) {
       require_auth( get_self() );
 
       update_ram_supply();
-      _gstate2.new_ram_per_block = bytes_per_block;
+      _gstate.new_ram_per_block = bytes_per_block;
    }
 
 #ifdef SYSTEM_BLOCKCHAIN_PARAMETERS
@@ -401,14 +428,17 @@ namespace eosiosystem {
 
    void system_contract::updtrevision( uint8_t revision ) {
       require_auth( get_self() );
-      check( _gstate2.revision < 255, "can not increment revision" ); // prevent wrap around
-      check( revision == _gstate2.revision + 1, "can only increment revision by one" );
+      check( _gstate.revision < 255, "can not increment revision" ); // prevent wrap around
+      check( revision == _gstate.revision + 1, "can only increment revision by one" );
       check( revision <= 1, // set upper bound to greatest revision supported in the code
              "specified revision is not yet supported by the code" );
-      _gstate2.revision = revision;
+      _gstate.revision = revision;
    }
 
    void system_contract::setinflation( int64_t annual_rate, int64_t inflation_pay_factor, int64_t votepay_factor ) {
+      // TELOS DISABLED
+      check( false, "not available on telos" );
+
       require_auth(get_self());
       check(annual_rate >= 0, "annual_rate can't be negative");
       if ( inflation_pay_factor < pay_factor_precision ) {
@@ -510,5 +540,31 @@ namespace eosiosystem {
       token::open_action open_act{ token_account, { {get_self(), active_permission} } };
       open_act.send( rex_account, core, get_self() );
    }
+
+   // BEGIN TELOS ADDITIONS
+   void system_contract::votebpout(name bp, uint32_t penalty_hours) {
+      require_auth(get_self());
+      check(penalty_hours != 0, "The penalty should be greater than zero.");
+
+      auto pitr = _producers.find(bp.value);
+      check(pitr != _producers.end(), "Producer account was not found");
+
+      _producers.modify(pitr, same_payer, [&](auto &p) {
+        p.kick(kick_type::BPS_VOTING, penalty_hours);
+      });
+   }
+
+   void system_contract::setpayrates(uint64_t bpay, uint64_t worker) {
+       require_auth(get_self());
+       check(worker <= max_worker_monthly_amount, "WPS rate exceeds the max");
+       check(bpay <= max_bpay_rate, "BPAY rate exceeds the max");
+       _gpayrate.bpay_rate = bpay;
+       _gpayrate.worker_amount = worker;
+   }
+
+   void system_contract::distviarex(name from, asset amount) {
+      system_contract::channel_to_rex(from, amount);
+   }
+   // END TELOS ADDITIONS
 
 } /// eosio.system

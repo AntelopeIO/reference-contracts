@@ -121,6 +121,15 @@ namespace eosiosystem {
 
    void check_auth_change(name contract, name account, const binary_extension<name>& authorized_by);
 
+   struct producer_metric {
+      name bp_name;
+      uint32_t missed_blocks_per_cycle = 12;
+
+      // explicit serialization macro is not necessary, used here only to improve
+      // compilation time
+      EOSLIB_SERIALIZE(producer_metric, (bp_name)(missed_blocks_per_cycle))
+   };
+
    // Method parameters commented out to prevent generation of code that parses input data.
    /**
     * The EOSIO core `native` contract that governs authorization and contracts' abi.
