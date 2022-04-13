@@ -117,6 +117,9 @@ void update_utilization(time_point_sec now, powerup_state_resource& res) {
 }
 
 void system_contract::cfgpowerup(powerup_config& args) {
+   // TELOS DISABLED
+   check( false, "not available on telos" );
+
    require_auth(get_self());
    time_point_sec         now         = eosio::current_time_point();
    auto                   core_symbol = get_core_symbol();
@@ -315,6 +318,9 @@ int64_t calc_powerup_fee(const powerup_state_resource& state, int64_t utilizatio
 }
 
 void system_contract::powerupexec(const name& user, uint16_t max) {
+   // TELOS DISABLED
+   check( false, "not available on telos" );
+
    require_auth(user);
    powerup_state_singleton state_sing{ get_self(), 0 };
    powerup_order_table     orders{ get_self(), 0 };
@@ -333,6 +339,9 @@ void system_contract::powerupexec(const name& user, uint16_t max) {
 
 void system_contract::powerup(const name& payer, const name& receiver, uint32_t days, int64_t net_frac, int64_t cpu_frac,
                              const asset& max_payment) {
+   // TELOS DISABLED
+   check( false, "not available on telos" );
+
    require_auth(payer);
    powerup_state_singleton state_sing{ get_self(), 0 };
    powerup_order_table     orders{ get_self(), 0 };

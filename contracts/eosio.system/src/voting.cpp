@@ -93,6 +93,7 @@ namespace eosiosystem {
             info.location           = location;
             info.last_claim_time    = ct;
             info.producer_authority.emplace( producer_authority );
+            info.unreg_reason = "";
          });
          // TELOS DELETION
          /*
@@ -323,9 +324,10 @@ namespace eosiosystem {
       */
    }
 
-   // TELOS DELETION
-   /*
    void system_contract::voteupdate( const name& voter_name ) {
+      // TELOS DISABLED
+      check( false, "not available on telos" );
+
       auto voter = _voters.find( voter_name.value );
       check( voter != _voters.end(), "no voter found" );
 
@@ -355,7 +357,6 @@ namespace eosiosystem {
       
       update_votes(voter_name, voter->proxy, voter->producers, true);
    } // voteupdate
-   */
 
 
    void system_contract::update_votes( const name& voter_name, const name& proxy, const std::vector<name>& producers, bool voting ) {

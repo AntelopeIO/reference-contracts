@@ -300,11 +300,12 @@ namespace eosiosystem {
       std::string           unreg_reason;
       std::string           url;
       uint32_t              unpaid_blocks = 0;
+      time_point            last_claim_time;
+      uint16_t              location = 0;
+
       uint32_t              lifetime_produced_blocks = 0;
       uint32_t              missed_blocks_per_rotation = 0;
       uint32_t              lifetime_missed_blocks = 0;
-      time_point            last_claim_time;
-      uint16_t              location = 0;
 
       uint32_t              kick_reason_id = 0;
       std::string           kick_reason;
@@ -347,10 +348,19 @@ namespace eosiosystem {
             << t.total_votes
             << t.producer_key
             << t.is_active
+            << t.unreg_reason
             << t.url
             << t.unpaid_blocks
             << t.last_claim_time
-            << t.location;
+            << t.location
+            << t.lifetime_produced_blocks
+            << t.missed_blocks_per_rotation
+            << t.lifetime_missed_blocks
+            << t.kick_reason_id 
+            << t.kick_reason
+            << t.times_kicked
+            << t.kick_penalty_hours
+            << t.last_time_kicked;
 
          if( !t.producer_authority.has_value() ) return ds;
 
@@ -363,10 +373,19 @@ namespace eosiosystem {
                    >> t.total_votes
                    >> t.producer_key
                    >> t.is_active
+                   >> t.unreg_reason
                    >> t.url
                    >> t.unpaid_blocks
                    >> t.last_claim_time
                    >> t.location
+                   >> t.lifetime_produced_blocks
+                   >> t.missed_blocks_per_rotation
+                   >> t.lifetime_missed_blocks
+                   >> t.kick_reason_id 
+                   >> t.kick_reason
+                   >> t.times_kicked
+                   >> t.kick_penalty_hours
+                   >> t.last_time_kicked
                    >> t.producer_authority;
       }
 
@@ -1358,8 +1377,6 @@ namespace eosiosystem {
          [[eosio::action]]
          void voteproducer( const name& voter, const name& proxy, const std::vector<name>& producers );
 
-         // TELOS DELETION
-         /*
          /**
           * Update the vote weight for the producers or proxy `voter_name` currently votes for. This will also
           * update the `staked` value for the `voter_name` by checking `rexbal` and all delegated NET and CPU. 
@@ -1369,10 +1386,9 @@ namespace eosiosystem {
           * @post the voter.staked will be updated
           * @post previously voted for producers vote weight will be updated with new weight
           * @post previously voted for proxy vote weight will be updated with new weight
-          *
+          */
          [[eosio::action]]
          void voteupdate( const name& voter_name );
-         */
 
          /**
           * Register proxy action, sets `proxy` account as proxy.

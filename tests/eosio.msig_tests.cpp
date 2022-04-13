@@ -442,7 +442,8 @@ BOOST_FIXTURE_TEST_CASE( big_transaction, eosio_msig_tester ) try {
 } FC_LOG_AND_RETHROW()
 
 
-
+// BEGIN TELOS DELETION
+/*
 BOOST_FIXTURE_TEST_CASE( update_system_contract_all_approve, eosio_msig_tester ) try {
 
    // required to set up the link between (eosio active) and (eosio.prods active)
@@ -744,6 +745,8 @@ BOOST_FIXTURE_TEST_CASE( update_system_contract_major_approve, eosio_msig_tester
 
    );
 } FC_LOG_AND_RETHROW()
+*/
+// END TELOS DELETION
 
 BOOST_FIXTURE_TEST_CASE( propose_approve_invalidate, eosio_msig_tester ) try {
    auto trx = reqauth( "alice"_n, {permission_level{"alice"_n, config::active_name}}, abi_serializer_max_time );

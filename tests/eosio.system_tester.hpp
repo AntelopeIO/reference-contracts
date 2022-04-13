@@ -43,8 +43,22 @@ public:
    void basic_setup() {
       produce_blocks( 2 );
 
-      create_accounts({ "eosio.token"_n, "eosio.ram"_n, "eosio.ramfee"_n, "eosio.stake"_n,
-               "eosio.bpay"_n, "eosio.vpay"_n, "eosio.saving"_n, "eosio.names"_n, "eosio.rex"_n });
+      create_accounts({
+         "eosio.token"_n,
+         "eosio.ram"_n,
+         "eosio.ramfee"_n,
+         "eosio.stake"_n,
+         "eosio.bpay"_n,
+         "eosio.vpay"_n,
+         "eosio.saving"_n,
+         "eosio.names"_n,
+         "eosio.rex"_n,
+         // BEGIN TELOS SPECIFIC
+         "eosio.trail"_n,
+         "exrsrv.tf"_n,
+         "telos.decide"_n
+         // END TELOS SPECIFIC
+      });
 
 
       produce_blocks( 100 );
@@ -718,7 +732,7 @@ public:
               "payrate"_n,
               "payrate"_n);
 
-      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "payrates", data, abi_serializer_max_time );
+      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "payrates", data, abi_serializer::create_yield_function(abi_serializer_max_time) );
    }
    // END TELOS ADDITIONS
 
@@ -1089,18 +1103,18 @@ public:
    fc::variant get_gmetrics_state() {
       vector<char> data = get_row_by_account( config::system_account_name, config::system_account_name, "schedulemetr"_n, "schedulemetr"_n );
       if (data.empty()) std::cout << "\nData is empty\n" << std::endl;
-      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "schedule_metrics_state", data, abi_serializer_max_time );
+      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "schedule_metrics_state", data, abi_serializer::create_yield_function(abi_serializer_max_time) );
    }
 
    fc::variant get_rotation_state() {
       vector<char> data = get_row_by_account( config::system_account_name, config::system_account_name, "rotations"_n, "rotations"_n );
       if (data.empty()) std::cout << "\nData is empty\n" << std::endl;
-      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "rotation_state", data, abi_serializer_max_time );
+      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "rotation_state", data, abi_serializer::create_yield_function(abi_serializer_max_time) );
    }
 
    fc::variant get_payment_info( name account ) {
       vector<char> data = get_row_by_account( config::system_account_name, config::system_account_name, "payments"_n, account );
-      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "payment_info", data, abi_serializer_max_time );
+      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "payment_info", data, abi_serializer::create_yield_function(abi_serializer_max_time) );
    }
    // END TELOS ADDITIONS
 
@@ -1253,7 +1267,7 @@ public:
          transfer( config::system_account_name, "alice1111111", core_sym::from_string("100000000.0000"), config::system_account_name );
          BOOST_REQUIRE_EQUAL(success(), stake( "alice1111111", core_sym::from_string("30000000.0000"), core_sym::from_string("30000000.0000") ) );
          BOOST_REQUIRE_EQUAL(success(), buyram( "alice1111111", "alice1111111", core_sym::from_string("30000000.0000") ) );
-         BOOST_REQUIRE_EQUAL(success(), push_action(N(alice1111111), N(voteproducer), mvo()
+         BOOST_REQUIRE_EQUAL(success(), push_action("alice1111111"_n, "voteproducer"_n, mvo()
                                                     ("voter",  "alice1111111")
                                                     ("proxy", name(0).to_string())
                                                     ("producers", vector<account_name>(producer_names.begin(), producer_names.begin()+21))
@@ -1264,7 +1278,7 @@ public:
 
       auto producer_keys = control->head_block_state()->active_schedule.producers;
       BOOST_REQUIRE_EQUAL( 21, producer_keys.size() );
-      BOOST_REQUIRE_EQUAL( name("tprodaaaaaaa"), producer_keys[0].producer_name );
+      BOOST_REQUIRE_EQUAL( "tprodaaaaaaa"_n, producer_keys[0].producer_name );
       
 
       return producer_names;
