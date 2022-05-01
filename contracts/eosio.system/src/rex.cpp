@@ -90,7 +90,8 @@ namespace eosiosystem {
       const asset rex_received = add_to_rex_pool( payment );
       auto rex_stake_delta = add_to_rex_balance( owner, payment, rex_received );
       runrex(2);
-      update_rex_account( owner, asset( 0, core_symbol() ), rex_stake_delta - payment, true );
+      // TELOS SPECIFIC: Null delta stake
+      update_rex_account( owner, asset( 0, core_symbol() ), asset( 0, core_symbol() ), true );
       // dummy action added so that amount of REX tokens purchased shows up in action trace
       rex_results::buyresult_action buyrex_act( rex_account, std::vector<eosio::permission_level>{ } );
       buyrex_act.send( rex_received );
@@ -455,7 +456,8 @@ namespace eosiosystem {
     */
    void system_contract::add_loan_to_rex_pool( const asset& payment, int64_t rented_tokens, bool new_loan )
    {
-      add_to_rex_return_pool( payment ); // NOT IN TELOS 
+      // TELOS DELETION
+      // add_to_rex_return_pool( payment ); 
       _rexpool.modify( _rexpool.begin(), same_payer, [&]( auto& rt ) {
          // add payment to total_rent
          rt.total_rent.amount    += payment.amount;
@@ -939,7 +941,8 @@ namespace eosiosystem {
    {
 #if CHANNEL_RAM_AND_NAMEBID_FEES_TO_REX
       if ( rex_available() ) {
-         add_to_rex_return_pool( amount );
+         // TELOS DELETION
+         // add_to_rex_return_pool( amount );
 
          // BEGIN TELOS SPECIFIC
          _rexpool.modify( _rexpool.begin(), same_payer, [&]( auto& rp ) {
