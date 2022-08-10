@@ -799,7 +799,7 @@ namespace eosiosystem {
       // mandel:
       // const int64_t unlent_lower_bound = rexitr->total_lent.amount / 10;
       // TELOS SPECIFIC
-      const int64_t unlent_lower_bound = ( uint128_t(2) * rexitr->total_lent.amount ) / 10;
+      const int64_t unlent_lower_bound = ( uint128_t(2) * rexpool_itr->total_lent.amount ) / 10;
       const int64_t available_unlent   = rexpool_itr->total_unlent.amount - unlent_lower_bound; // available_unlent <= 0 is possible
 
       if ( proceeds.amount <= available_unlent ) {

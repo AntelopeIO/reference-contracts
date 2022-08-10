@@ -3590,7 +3590,7 @@ BOOST_FIXTURE_TEST_CASE(producers_upgrade_system_contract, eosio_system_tester) 
 
    transaction_trace_ptr trace;
    control->applied_transaction.connect(
-   [&]( std::tuple<const transaction_trace_ptr&, const signed_transaction&> p ) {
+   [&]( std::tuple<const transaction_trace_ptr&, const packed_transaction_ptr&> p ) {
       const auto& t = std::get<0>(p);
       if( t->scheduled ) { trace = t; }
    } );

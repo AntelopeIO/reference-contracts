@@ -319,7 +319,7 @@ try {
 
    // Deploy the blockinfo_tester contract.
    create_account_with_resources(blockinfo_tester_account_name, config::system_account_name,
-                                 core_sym::from_string("10.0000"), false);
+                                 core_sym::from_string("40.0000"), false);
    set_code(blockinfo_tester_account_name, test_contracts::blockinfo_tester_wasm());
 
    auto latest_block_batch_info = [this](uint32_t batch_start_height_offset,
