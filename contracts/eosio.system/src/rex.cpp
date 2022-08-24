@@ -523,7 +523,7 @@ namespace eosiosystem {
    {
       check( rex_system_initialized(), "rex system not initialized yet" );
 
-      update_rex_pool(); // NOT IN TELOS
+      // update_rex_pool();  NOT IN TELOS
 
       const auto& pool = _rexpool.begin();
 
@@ -796,7 +796,7 @@ namespace eosiosystem {
       asset stake_change( 0, core_symbol() );
       bool  success = false;
 
-      // mandel:
+      // upstream:
       // const int64_t unlent_lower_bound = rexitr->total_lent.amount / 10;
       // TELOS SPECIFIC
       const int64_t unlent_lower_bound = ( uint128_t(2) * rexpool_itr->total_lent.amount ) / 10;

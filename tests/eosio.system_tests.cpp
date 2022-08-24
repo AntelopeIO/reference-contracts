@@ -2036,11 +2036,11 @@ BOOST_FIXTURE_TEST_CASE(producer_pay, eosio_system_tester, * boost::unit_test::t
       const int64_t  initial_perblock_bucket   = initial_global_state["perblock_bucket"].as<int64_t>();
       const int64_t  initial_savings           = get_balance("eosio.saving"_n).get_amount();
       const uint32_t initial_tot_unpaid_blocks = initial_global_state["total_unpaid_blocks"].as<uint32_t>();
-      
+
       prod = get_producer_info("defproducera");
       const uint32_t unpaid_blocks = prod["unpaid_blocks"].as<uint32_t>();
       const bool is_active = prod["is_active"].as<bool>();
-      
+
       BOOST_REQUIRE(is_active);
       BOOST_REQUIRE(1 < unpaid_blocks);
 
@@ -2080,7 +2080,7 @@ BOOST_FIXTURE_TEST_CASE(producer_pay, eosio_system_tester, * boost::unit_test::t
       asset to_bpay = asset(to_producers, symbol{CORE_SYM});
       asset to_wps = asset(to_workers, symbol{CORE_SYM});
       asset new_tokens = asset(to_workers + to_producers, symbol{CORE_SYM});
-      
+
       BOOST_REQUIRE_EQUAL(0, prod["unpaid_blocks"].as<uint32_t>());
       BOOST_REQUIRE_EQUAL(0, tot_unpaid_blocks);
       BOOST_REQUIRE_EQUAL(get_balance("eosio.bpay"_n), initial_bpay_balance + to_bpay);
@@ -4875,12 +4875,12 @@ BOOST_FIXTURE_TEST_CASE( unstake_buy_rex, eosio_system_tester, * boost::unit_tes
       BOOST_REQUIRE_EQUAL( get_net_limit( alice ),                  init_net_limit + net_stake.get_amount() );
       BOOST_REQUIRE_EQUAL( success(),
                            vote( alice, std::vector<account_name>(producer_names.begin(), producer_names.begin() + 20) ) );
-      
+
       BOOST_REQUIRE_EQUAL( wasm_assert_msg("must vote for at least 21 producers or for a proxy before buying REX"),
                            unstaketorex( alice, alice, net_stake, cpu_stake ) );
       */
       // END TELOS DELETION
-      
+
       // TELOS SPECIFIC
       const asset net_stake = core_sym::from_string("25.5000");
       const asset cpu_stake = core_sym::from_string("12.4000");
