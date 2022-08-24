@@ -12,10 +12,10 @@ compiled using this [Dockerfile](https://github.com/guilledk/telos-cdt-docker/bl
         bash -c 'cd build && cmake .. -DBUILD_TESTS=yes && make'
 
     # run tests
-    docker run -it --rm \
-        --mount type=bind,source="$(pwd)",target=/root/target \
+    docker run -it --rm --mount \
+        type=bind,source="$(pwd)",target=/root/target \
         cdt:antelope \
-        bash -c 'cd build && cmake .. -DBUILD_TESTS=yes && make'
+        bash -c 'cd build/tests && ./unit_test'
 
 ### `contracts/eosio.system/include`
 
