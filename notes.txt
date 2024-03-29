@@ -1,0 +1,1 @@
+5467: BOOST_FIXTURE_TEST_CASE( set_rex, eosio_system_tester ) try {

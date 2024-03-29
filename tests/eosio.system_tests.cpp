@@ -4024,6 +4024,8 @@ BOOST_FIXTURE_TEST_CASE( rex_auth, eosio_system_tester ) try {
    BOOST_REQUIRE_EQUAL( error(error_msg), push_action( bob, "mvtosavings"_n, mvo()("owner", alice)("rex", one_rex) ) );
    BOOST_REQUIRE_EQUAL( error(error_msg), push_action( bob, "mvfrsavings"_n, mvo()("owner", alice)("rex", one_rex) ) );
    BOOST_REQUIRE_EQUAL( error(error_msg), push_action( bob, "closerex"_n, mvo()("owner", alice) ) );
+   BOOST_REQUIRE_EQUAL( error(error_msg),
+                        push_action( bob, "donatetorex"_n, mvo()("payer", alice)("quantity", one_eos)("memo", "") ) );
 
    BOOST_REQUIRE_EQUAL( error("missing authority of eosio"), push_action( alice, "setrex"_n, mvo()("balance", one_eos) ) );
 
@@ -5446,6 +5448,25 @@ BOOST_FIXTURE_TEST_CASE( close_rex, eosio_system_tester ) try {
 
 } FC_LOG_AND_RETHROW()
 
+BOOST_FIXTURE_TEST_CASE( donate_to_rex, eosio_system_tester ) try {
+
+   const asset   init_balance = core_sym::from_string("10000.0000");
+   const std::vector<account_name> accounts = { "aliceaccount"_n, "bobbyaccount"_n };
+   account_name alice = accounts[0], bob = accounts[1];
+   setup_rex_accounts( accounts, init_balance );
+   issue_and_transfer( bob, core_sym::from_string("1000.0000"), config::system_account_name );
+
+   BOOST_REQUIRE_EQUAL( wasm_assert_msg("rex system is not initialized"),
+                        donatetorex( bob, core_sym::from_string("500.0000"), "") );
+   BOOST_REQUIRE_EQUAL( success(), buyrex( alice, init_balance ) );
+   BOOST_REQUIRE_EQUAL( wasm_assert_msg("quantity must be core token"),
+                        donatetorex( bob, asset::from_string("100 TKN"), "") );
+
+   const asset initial_eosio_rex_balance = get_balance("eosio.rex"_n);
+   BOOST_REQUIRE_EQUAL( success(), donatetorex( bob, core_sym::from_string("500.0000"), "") );
+   BOOST_REQUIRE_EQUAL( initial_eosio_rex_balance + core_sym::from_string("500.0000"), get_balance("eosio.rex"_n) );
+
+} FC_LOG_AND_RETHROW()
 
 BOOST_FIXTURE_TEST_CASE( set_rex, eosio_system_tester ) try {
 
