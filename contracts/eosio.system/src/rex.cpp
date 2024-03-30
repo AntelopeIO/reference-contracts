@@ -365,6 +365,7 @@ namespace eosiosystem {
       require_auth( payer );
       check( rex_available(), "rex system is not initialized" );
       check( quantity.symbol == core_symbol(), "quantity must be core token" );
+      check( quantity.amount > 0, "quantity must be positive" );
 
       add_to_rex_return_pool( quantity );
       // inline transfer to rex_account
