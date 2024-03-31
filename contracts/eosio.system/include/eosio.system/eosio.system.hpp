@@ -1199,6 +1199,17 @@ namespace eosiosystem {
          action_return_ramtransfer ramburn( const name& owner, int64_t bytes, const std::string& memo );
 
          /**
+          * Buy RAM and immediately burn RAM.
+          * An inline transfer from payer to system contract of tokens will be executed.
+          *
+          * @param payer - the payer of buy RAM & burn.
+          * @param quantity - the quantity of tokens to buy RAM & burn with.
+          * @param memo - the memo string to accompany the transaction.
+          */
+         [[eosio::action]]
+         action_return_buyram buyramburn( const name& payer, const asset& quantity, const std::string& memo );
+
+         /**
           * Logging for ram changes
           *
           * @param owner - the ram owner account,
@@ -1510,6 +1521,7 @@ namespace eosiosystem {
          using logsellram_action = eosio::action_wrapper<"logsellram"_n, &system_contract::logsellram>;
          using ramtransfer_action = eosio::action_wrapper<"ramtransfer"_n, &system_contract::ramtransfer>;
          using ramburn_action = eosio::action_wrapper<"ramburn"_n, &system_contract::ramburn>;
+         using buyramburn_action = eosio::action_wrapper<"buyramburn"_n, &system_contract::buyramburn>;
          using logramchange_action = eosio::action_wrapper<"logramchange"_n, &system_contract::logramchange>;
          using refund_action = eosio::action_wrapper<"refund"_n, &system_contract::refund>;
          using regproducer_action = eosio::action_wrapper<"regproducer"_n, &system_contract::regproducer>;

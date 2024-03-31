@@ -161,6 +161,31 @@ BOOST_FIXTURE_TEST_CASE( ram_burn, eosio_system_tester ) try {
 
 } FC_LOG_AND_RETHROW()
 
+// buyramburn
+BOOST_FIXTURE_TEST_CASE( buy_ram_burn, eosio_system_tester ) try {
+   const std::vector<account_name> accounts = { "alice"_n };
+   const account_name alice = accounts[0];
+   const account_name null_account = "eosio.null"_n;
+
+   create_accounts_with_resources( accounts );
+   transfer( config::system_account_name, alice, core_sym::from_string("100.0000"), config::system_account_name );
+
+   BOOST_REQUIRE_EQUAL( success(), buyrambytes( alice, alice, 10000 ) );
+   BOOST_REQUIRE_EQUAL( success(), buyrambytes( alice, null_account, 10000 ) );
+
+   const uint64_t null_before_buyramburn = get_total_stake( null_account )["ram_bytes"].as_uint64();
+   const uint64_t alice_before_buyramburn = get_total_stake( alice )["ram_bytes"].as_uint64();
+   const asset initial_alice_balance = get_balance(alice);
+   const asset ten_core_token = core_sym::from_string("10.0000");
+
+   // buy ram burn action
+   BOOST_REQUIRE_EQUAL( success(), buyramburn( alice, ten_core_token, "burn RAM burn memo" ) );
+   const uint64_t alice_after_buyramburn = get_total_stake( alice )["ram_bytes"].as_uint64();
+   const uint64_t null_after_buyramburn = get_total_stake( null_account )["ram_bytes"].as_uint64();
+   BOOST_REQUIRE_EQUAL( alice_before_buyramburn, alice_after_buyramburn );
+   BOOST_REQUIRE_EQUAL( true, null_before_buyramburn < null_after_buyramburn );
+   BOOST_REQUIRE_EQUAL( initial_alice_balance - ten_core_token,  get_balance(alice));
+} FC_LOG_AND_RETHROW()
 
 // buyramself
 BOOST_FIXTURE_TEST_CASE( buy_ram_self, eosio_system_tester ) try {

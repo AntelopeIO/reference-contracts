@@ -179,6 +179,20 @@ namespace eosiosystem {
       return ramtransfer( owner, null_account, bytes, memo );
    }
 
+   /**
+    * This action will buy and then burn the purchased RAM bytes.
+    */
+   action_return_buyram system_contract::buyramburn( const name& payer, const asset& quantity, const std::string& memo ) {
+      require_auth( payer );
+      check( quantity.symbol == core_symbol(), "quantity must be core token" );
+      check( quantity.amount > 0, "quantity must be positive" );
+
+      const auto return_buyram = buyram( payer, payer, quantity );
+      ramtransfer( payer, null_account, return_buyram.bytes_purchased, memo );
+
+      return return_buyram;
+   }
+
    [[eosio::action]]
    void system_contract::logramchange( const name& owner, int64_t bytes, int64_t ram_bytes )
    {

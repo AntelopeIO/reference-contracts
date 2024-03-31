@@ -428,6 +428,11 @@ public:
       return ramburn(account_name(owner), bytes, memo);
    }
 
+   action_result buyramburn( const name& payer, const asset& quantity, const std::string& memo)
+   {
+      return push_action(payer, "buyramburn"_n, mvo()("payer", payer)("quantity", quantity)("memo", memo));
+   }
+
    void validate_ramburn_return(const account_name& owner, uint32_t bytes, const std::string& memo,
                                     const type_name& type, const std::string& json) {
       // create hex return from provided json
