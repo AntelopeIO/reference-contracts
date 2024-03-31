@@ -188,7 +188,7 @@ namespace eosiosystem {
       check( quantity.amount > 0, "quantity must be positive" );
 
       const auto return_buyram = buyram( payer, payer, quantity );
-      ramtransfer( payer, null_account, return_buyram.bytes_purchased, memo );
+      ramburn( payer, return_buyram.bytes_purchased, memo );
 
       return return_buyram;
    }
