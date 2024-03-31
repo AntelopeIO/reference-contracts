@@ -354,6 +354,26 @@ namespace eosiosystem {
    }
 
    /**
+    * @brief Updates REX pool and deposits token to eosio.rex
+    *
+    * @param payer - the payer of donated funds.
+    * @param quantity - the quantity of tokens to donated to REX with.
+    * @param memo - the memo string to accompany the transfer.
+    */
+   void system_contract::donatetorex( const name& payer, const asset& quantity, const std::string& memo )
+   {
+      require_auth( payer );
+      check( rex_available(), "rex system is not initialized" );
+      check( quantity.symbol == core_symbol(), "quantity must be core token" );
+      check( quantity.amount > 0, "quantity must be positive" );
+
+      add_to_rex_return_pool( quantity );
+      // inline transfer to rex_account
+      token::transfer_action transfer_act{ token_account, { payer, active_permission } };
+      transfer_act.send( payer, rex_account, quantity, memo );
+   }
+
+   /**
     * @brief Updates account NET and CPU resource limits
     *
     * @param from - account charged for RAM if there is a need

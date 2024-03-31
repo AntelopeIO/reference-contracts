@@ -874,6 +874,14 @@ public:
       return push_action( name(owner), "closerex"_n, mvo()("owner", owner) );
    }
 
+   action_result donatetorex( const account_name& payer, const asset& quantity, const std::string& memo ) {
+      return push_action( name(payer), "donatetorex"_n, mvo()
+                          ("payer", payer)
+                          ("quantity", quantity)
+                          ("memo", memo)
+      );
+   }
+
    fc::variant get_last_loan(bool cpu) {
       vector<char> data;
       const auto& db = control->db();

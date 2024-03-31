@@ -1080,6 +1080,17 @@ namespace eosiosystem {
          void closerex( const name& owner );
 
          /**
+          * Donatetorex action, donates funds to REX, increases REX pool return buckets
+          * Executes inline transfer from payer to system contract of tokens will be executed.
+          *
+          * @param payer - the payer of donated funds.
+          * @param quantity - the quantity of tokens to donated to REX with.
+          * @param memo - the memo string to accompany the transaction.
+          */
+         [[eosio::action]]
+         void donatetorex( const name& payer, const asset& quantity, const std::string& memo );
+
+         /**
           * Undelegate bandwidth action, decreases the total tokens delegated by `from` to `receiver` and/or
           * frees the memory associated with the delegation if there is nothing
           * left to delegate.
@@ -1502,6 +1513,7 @@ namespace eosiosystem {
          using mvfrsavings_action = eosio::action_wrapper<"mvfrsavings"_n, &system_contract::mvfrsavings>;
          using consolidate_action = eosio::action_wrapper<"consolidate"_n, &system_contract::consolidate>;
          using closerex_action = eosio::action_wrapper<"closerex"_n, &system_contract::closerex>;
+         using donatetorex_action = eosio::action_wrapper<"donatetorex"_n, &system_contract::donatetorex>;
          using undelegatebw_action = eosio::action_wrapper<"undelegatebw"_n, &system_contract::undelegatebw>;
          using buyram_action = eosio::action_wrapper<"buyram"_n, &system_contract::buyram>;
          using buyrambytes_action = eosio::action_wrapper<"buyrambytes"_n, &system_contract::buyrambytes>;
