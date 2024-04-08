@@ -104,15 +104,25 @@ namespace eosio {
          static asset get_supply( const name& token_contract_account, const symbol_code& sym_code )
          {
             stats statstable( token_contract_account, sym_code.raw() );
-            const auto& st = statstable.get( sym_code.raw(), "invalid supply symbol code" );
-            return st.supply;
+            return statstable.get( sym_code.raw(), "invalid supply symbol code" ).supply;
+         }
+
+         static asset get_max_supply( const name& token_contract_account, const symbol_code& sym_code )
+         {
+            stats statstable( token_contract_account, sym_code.raw() );
+            return statstable.get( sym_code.raw(), "invalid supply symbol code" ).max_supply;
+         }
+
+         static name get_issuer( const name& token_contract_account, const symbol_code& sym_code )
+         {
+            stats statstable( token_contract_account, sym_code.raw() );
+            return statstable.get( sym_code.raw(), "invalid supply symbol code" ).issuer;
          }
 
          static asset get_balance( const name& token_contract_account, const name& owner, const symbol_code& sym_code )
          {
             accounts accountstable( token_contract_account, owner.value );
-            const auto& ac = accountstable.get( sym_code.raw(), "no balance with specified symbol" );
-            return ac.balance;
+            return accountstable.get( sym_code.raw(), "no balance with specified symbol" ).balance;
          }
 
          using create_action = eosio::action_wrapper<"create"_n, &token::create>;
@@ -121,7 +131,7 @@ namespace eosio {
          using transfer_action = eosio::action_wrapper<"transfer"_n, &token::transfer>;
          using open_action = eosio::action_wrapper<"open"_n, &token::open>;
          using close_action = eosio::action_wrapper<"close"_n, &token::close>;
-      private:
+
          struct [[eosio::table]] account {
             asset    balance;
 
@@ -139,6 +149,7 @@ namespace eosio {
          typedef eosio::multi_index< "accounts"_n, account > accounts;
          typedef eosio::multi_index< "stat"_n, currency_stats > stats;
 
+      private:
          void sub_balance( const name& owner, const asset& value );
          void add_balance( const name& owner, const asset& value, const name& ram_payer );
    };
