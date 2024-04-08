@@ -61,6 +61,15 @@ namespace eosio {
          void issuefixed( const name& to, const asset& supply, const string& memo );
 
          /**
+          * Set the maximum supply of the token.
+          *
+          * @param issuer - the issuer account setting the maximum supply.
+          * @param maximum_supply - the maximum supply of the token.
+          */
+         [[eosio::action]]
+         void setmaxsupply( const name& issuer, const asset& maximum_supply );
+
+         /**
           * The opposite for create action, if all validations succeed,
           * it debits the statstable.supply amount.
           *

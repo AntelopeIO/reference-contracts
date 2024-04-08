@@ -28,6 +28,19 @@ This action will not result any any tokens being issued into circulation.
 
 RAM will deducted from {{$action.account}}’s resources to create the necessary records.
 
+<h1 class="contract">setmaxsupply</h1>
+
+---
+spec_version: "0.2.0"
+title: Set Max Supply
+summary: 'Set max supply for token'
+icon: @ICON_BASE_URL@/@TOKEN_ICON_URI@
+---
+
+{{issuer}} will be allowed to issue tokens into circulation, up to a maximum supply of {{maximum_supply}}.
+
+This action will not result any any tokens being issued into circulation.
+
 <h1 class="contract">issue</h1>
 
 ---
