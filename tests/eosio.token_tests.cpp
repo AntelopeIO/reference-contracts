@@ -78,6 +78,14 @@ public:
       );
    }
 
+   action_result issuefixed( account_name issuer, asset supply, string memo ) {
+      return push_action( issuer, "issuefixed"_n, mvo()
+           ( "to", issuer)
+           ( "supply", supply)
+           ( "memo", memo)
+      );
+   }
+
    action_result retire( account_name issuer, asset quantity, string memo ) {
       return push_action( issuer, "retire"_n, mvo()
            ( "quantity", quantity)
@@ -238,6 +246,27 @@ BOOST_FIXTURE_TEST_CASE( issue_tests, eosio_token_tester ) try {
                         issue( "alice"_n, asset::from_string("1.000 TKN"), "hola" )
    );
 
+} FC_LOG_AND_RETHROW()
+
+BOOST_FIXTURE_TEST_CASE( issuefixed_tests, eosio_token_tester ) try {
+
+   auto token = create( "alice"_n, asset::from_string("1000.000 TKN"));
+   produce_blocks(1);
+
+   issue( "alice"_n, asset::from_string("200.000 TKN"), "issue active supply" );
+
+   issuefixed( "alice"_n, asset::from_string("1000.000 TKN"), "issue max supply" );
+
+   auto stats = get_stats("3,TKN");
+   REQUIRE_MATCHING_OBJECT( stats, mvo()
+      ("supply", "1000.000 TKN")
+      ("max_supply", "1000.000 TKN")
+      ("issuer", "alice")
+   );
+
+   BOOST_REQUIRE_EQUAL( wasm_assert_msg( "symbol precision mismatch" ),
+                        issuefixed( "alice"_n, asset::from_string("1 TKN"), "hola" )
+   );
 
 } FC_LOG_AND_RETHROW()
 

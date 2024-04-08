@@ -22,7 +22,6 @@ void token::create( const name&   issuer,
     });
 }
 
-
 void token::issue( const name& to, const asset& quantity, const string& memo )
 {
     auto sym = quantity.symbol;
@@ -47,6 +46,14 @@ void token::issue( const name& to, const asset& quantity, const string& memo )
     });
 
     add_balance( st.issuer, quantity, st.issuer );
+}
+
+void token::issuefixed( const name& to, const asset& supply, const string& memo )
+{
+   const asset circulating_supply = get_supply( get_self(), supply.symbol.code() );
+   check( circulating_supply.symbol == supply.symbol, "symbol precision mismatch" );
+   const asset quantity = supply - circulating_supply;
+   issue( to, quantity, memo );
 }
 
 void token::retire( const asset& quantity, const string& memo )
