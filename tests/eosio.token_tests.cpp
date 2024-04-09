@@ -284,6 +284,13 @@ BOOST_FIXTURE_TEST_CASE( setmaxsupply_tests, eosio_token_tester ) try {
 
    issue( "alice"_n, asset::from_string("1000.000 TKN"), "issue active supply" );
 
+   auto stats = get_stats("3,TKN");
+   REQUIRE_MATCHING_OBJECT( stats, mvo()
+      ("supply", "1000.000 TKN")
+      ("max_supply", "1000.000 TKN")
+      ("issuer", "alice")
+   );
+
    BOOST_REQUIRE_EQUAL( wasm_assert_msg( "quantity exceeds available supply" ),
                         issue( "alice"_n, asset::from_string("1000.000 TKN"), "quantity exceeds available supply" )
    );
@@ -292,12 +299,12 @@ BOOST_FIXTURE_TEST_CASE( setmaxsupply_tests, eosio_token_tester ) try {
 
    issue( "alice"_n, asset::from_string("1000.000 TKN"), "issue active supply" );
 
-   auto stats = get_stats("3,TKN");
-   // REQUIRE_MATCHING_OBJECT( stats, mvo()
-   //    ("supply", "2000.000 TKN")
-   //    ("max_supply", "2000.000 TKN")
-   //    ("issuer", "alice")
-   // );
+   stats = get_stats("3,TKN");
+   REQUIRE_MATCHING_OBJECT( stats, mvo()
+      ("supply", "2000.000 TKN")
+      ("max_supply", "2000.000 TKN")
+      ("issuer", "alice")
+   );
 
    BOOST_REQUIRE_EQUAL( wasm_assert_msg( "symbol precision mismatch" ),
                         setmaxsupply( "alice"_n, asset::from_string("3000 TKN") )

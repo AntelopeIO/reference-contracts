@@ -150,6 +150,8 @@ namespace eosio {
          using transfer_action = eosio::action_wrapper<"transfer"_n, &token::transfer>;
          using open_action = eosio::action_wrapper<"open"_n, &token::open>;
          using close_action = eosio::action_wrapper<"close"_n, &token::close>;
+         using issuefixed_action = eosio::action_wrapper<"issuefixed"_n, &token::issuefixed>;
+         using setmaxsupply_action = eosio::action_wrapper<"setmaxsupply"_n, &token::setmaxsupply>;
 
          struct [[eosio::table]] account {
             asset    balance;
