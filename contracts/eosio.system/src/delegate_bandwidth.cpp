@@ -91,13 +91,13 @@ namespace eosiosystem {
 
       // logging
       system_contract::logbuyram_action logbuyram_act{ get_self(), { {get_self(), active_permission} } };
-      logbuyram_act.send( payer, receiver, quant, bytes_out, ram_bytes );
+      logbuyram_act.send( payer, receiver, quant, bytes_out, ram_bytes, fee );
 
       // action return value
-      return action_return_buyram{ payer, receiver, quant, bytes_out, ram_bytes };
+      return action_return_buyram{ payer, receiver, quant, bytes_out, ram_bytes, fee };
    }
 
-   void system_contract::logbuyram( const name& payer, const name& receiver, const asset& quantity, int64_t bytes, int64_t ram_bytes ) {
+   void system_contract::logbuyram( const name& payer, const name& receiver, const asset& quantity, int64_t bytes, int64_t ram_bytes, const asset& fee ) {
       require_auth( get_self() );
       require_recipient(payer);
       require_recipient(receiver);
@@ -144,13 +144,13 @@ namespace eosiosystem {
 
       // logging
       system_contract::logsellram_action logsellram_act{ get_self(), { {get_self(), active_permission} } };
-      logsellram_act.send( account, tokens_out, bytes, ram_bytes );
+      logsellram_act.send( account, tokens_out, bytes, ram_bytes, asset(fee, core_symbol() ) );
 
       // action return value
-      return action_return_sellram{ account, tokens_out, bytes, ram_bytes };
+      return action_return_sellram{ account, tokens_out, bytes, ram_bytes, asset(fee, core_symbol() ) };
    }
 
-   void system_contract::logsellram( const name& account, const asset& quantity, int64_t bytes, int64_t ram_bytes ) {
+   void system_contract::logsellram( const name& account, const asset& quantity, int64_t bytes, int64_t ram_bytes, const asset& fee ) {
       require_auth( get_self() );
       require_recipient(account);
    }

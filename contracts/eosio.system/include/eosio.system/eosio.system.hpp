@@ -550,6 +550,7 @@ namespace eosiosystem {
       asset quantity;
       int64_t bytes_sold;
       int64_t ram_bytes;
+      asset fee;
    };
 
    struct action_return_buyram {
@@ -558,6 +559,7 @@ namespace eosiosystem {
       asset quantity;
       int64_t bytes_purchased;
       int64_t ram_bytes;
+      asset fee;
    };
 
    struct action_return_ramtransfer {
@@ -1163,9 +1165,10 @@ namespace eosiosystem {
           * @param quantity - the quantity of tokens to buy ram with.
           * @param bytes - the quantity of ram to buy specified in bytes.
           * @param ram_bytes - the ram bytes held by receiver after the action.
+          * @param fee - the fee to be paid for the ram sold.
           */
          [[eosio::action]]
-         void logbuyram( const name& payer, const name& receiver, const asset& quantity, int64_t bytes, int64_t ram_bytes );
+         void logbuyram( const name& payer, const name& receiver, const asset& quantity, int64_t bytes, int64_t ram_bytes, const asset& fee );
 
          /**
           * Sell ram action, reduces quota by bytes and then performs an inline transfer of tokens
@@ -1184,9 +1187,10 @@ namespace eosiosystem {
           * @param quantity - the quantity of tokens to sell ram with.
           * @param bytes - the quantity of ram to sell specified in bytes.
           * @param ram_bytes - the ram bytes held by account after the action.
+          * @param fee - the fee to be paid for the ram sold.
           */
          [[eosio::action]]
-         void logsellram( const name& account, const asset& quantity, int64_t bytes, int64_t ram_bytes );
+         void logsellram( const name& account, const asset& quantity, int64_t bytes, int64_t ram_bytes, const asset& fee );
 
          /**
           * Transfer ram action, reduces sender's quota by bytes and increase receiver's quota by bytes.

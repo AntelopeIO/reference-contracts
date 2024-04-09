@@ -259,7 +259,11 @@ public:
                  {
                      "name": "ram_bytes",
                      "type": "int64"
-                 }
+                 },
+                 {
+                      "name": "fee",
+                      "type": "asset"
+                  }
              ]
          },
          {
@@ -307,7 +311,11 @@ public:
                  {
                      "name": "ram_bytes",
                      "type": "int64"
-                 }
+                 },
+                 {
+                      "name": "fee",
+                      "type": "asset"
+                  }
              ]
          },
       ],
