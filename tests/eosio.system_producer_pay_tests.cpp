@@ -186,27 +186,6 @@ BOOST_FIXTURE_TEST_CASE(producer_pay, eosio_system_tester, * boost::unit_test::t
                           push_action("defproducerb"_n, "claimrewards"_n, mvo()("owner", "defproducerb")));
    }
 
-
-   // test claimrewards when max supply is reached
-   {
-      produce_block(fc::hours(24));
-
-      const asset before_supply = get_token_supply();
-      const asset before_system_balance = get_balance(config::system_account_name);
-      const asset before_producer_balance = get_balance("defproducera"_n);
-
-      setmaxsupply( before_supply );
-      BOOST_REQUIRE_EQUAL(success(), push_action("defproducera"_n, "claimrewards"_n, mvo()("owner", "defproducera")));
-
-      const asset after_supply = get_token_supply();
-      const asset after_system_balance = get_balance(config::system_account_name);
-      const asset after_producer_balance = get_balance("defproducera"_n);
-
-      BOOST_REQUIRE_EQUAL(after_supply.get_amount() - before_supply.get_amount(), 0);
-      BOOST_REQUIRE_EQUAL(after_system_balance.get_amount() - before_system_balance.get_amount(), -1340576600);
-      BOOST_REQUIRE_EQUAL(after_producer_balance.get_amount() - before_producer_balance.get_amount(), 268115320);
-   }
-
    // test stability over a year
    {
       regproducer("defproducerb"_n);
@@ -228,6 +207,26 @@ BOOST_FIXTURE_TEST_CASE(producer_pay, eosio_system_tester, * boost::unit_test::t
       // is due to compounding every 8 hours in this test as opposed to theoretical continuous compounding
       BOOST_REQUIRE(500 * 10000 > int64_t(double(initial_supply.get_amount()) * double(0.05)) - (supply.get_amount() - initial_supply.get_amount()));
       BOOST_REQUIRE(500 * 10000 > int64_t(double(initial_supply.get_amount()) * double(0.04)) - (savings - initial_savings));
+   }
+
+   // test claimrewards when max supply is reached
+   {
+      produce_block(fc::hours(24));
+
+      const asset before_supply = get_token_supply();
+      const asset before_system_balance = get_balance(config::system_account_name);
+      const asset before_producer_balance = get_balance("defproducera"_n);
+
+      setmaxsupply( before_supply );
+      BOOST_REQUIRE_EQUAL(success(), push_action("defproducera"_n, "claimrewards"_n, mvo()("owner", "defproducera")));
+
+      const asset after_supply = get_token_supply();
+      const asset after_system_balance = get_balance(config::system_account_name);
+      const asset after_producer_balance = get_balance("defproducera"_n);
+
+      BOOST_REQUIRE_EQUAL(after_supply.get_amount() - before_supply.get_amount(), 0);
+      BOOST_REQUIRE_EQUAL(after_system_balance.get_amount() - before_system_balance.get_amount(), -1407793756);
+      BOOST_REQUIRE_EQUAL(after_producer_balance.get_amount() - before_producer_balance.get_amount(), 281558751);
    }
 
 } FC_LOG_AND_RETHROW()
