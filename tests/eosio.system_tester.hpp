@@ -1165,6 +1165,13 @@ public:
                                 );
    }
 
+   void retire( const asset& quantity, const name& issuer = config::system_account_name ) {
+      base_tester::push_action( "eosio.token"_n, "retire"_n, issuer, mutable_variant_object()
+                                ("quantity", quantity )
+                                ("memo",     "")
+                                );
+   }
+
    void issuefixed( const asset& supply, const name& to = config::system_account_name ) {
       base_tester::push_action( "eosio.token"_n, "issuefixed"_n, to, mutable_variant_object()
                                 ("to",       to )

@@ -112,7 +112,7 @@ namespace eosiosystem {
 
                // use existing eosio token balance if circulating supply exceeds max supply
                } else {
-                  check( token_balance.amount >= new_tokens, "system token balance does not have enough to distribute new tokens");
+                  check( token_balance.amount >= new_tokens, "insufficient system token balance for claiming rewards");
                }
             }
             {
