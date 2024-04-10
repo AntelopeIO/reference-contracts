@@ -1165,6 +1165,28 @@ public:
                                 );
    }
 
+   void retire( const asset& quantity, const name& issuer = config::system_account_name ) {
+      base_tester::push_action( "eosio.token"_n, "retire"_n, issuer, mutable_variant_object()
+                                ("quantity", quantity )
+                                ("memo",     "")
+                                );
+   }
+
+   void issuefixed( const asset& supply, const name& to = config::system_account_name ) {
+      base_tester::push_action( "eosio.token"_n, "issuefixed"_n, to, mutable_variant_object()
+                                ("to",       to )
+                                ("supply", supply )
+                                ("memo",     "")
+                                );
+   }
+
+   void setmaxsupply( const asset& maximum_supply, const name& issuer = config::system_account_name) {
+      base_tester::push_action( "eosio.token"_n, "setmaxsupply"_n, issuer, mutable_variant_object()
+                                ("issuer",       issuer )
+                                ("maximum_supply", maximum_supply )
+                                );
+   }
+
    void transfer( const name& from, const name& to, const asset& amount, const name& manager = config::system_account_name ) {
       base_tester::push_action( "eosio.token"_n, "transfer"_n, manager, mutable_variant_object()
                                 ("from",    from)
