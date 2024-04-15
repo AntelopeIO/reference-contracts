@@ -109,6 +109,15 @@ namespace eosiosystem {
       _gstate2.new_ram_per_block = bytes_per_block;
    }
 
+   void system_contract::channel_to_system_fee( const name& from, const asset& amount, const name& protocol, const std::string& memo ) {
+         system_contract::logsystemfee_action logsystemfee_act{ get_self(), { {get_self(), active_permission} } };
+         logsystemfee_act.send(protocol, amount, memo);
+         // inline transfer to fee_account
+         token::transfer_action transfer_act{ token_account, { from, active_permission } };
+         transfer_act.send( from, fee_account, amount,
+                            std::string("transfer from ") + from.to_string() + " to eosio.fee" );
+   }
+
 #ifdef SYSTEM_BLOCKCHAIN_PARAMETERS
    extern "C" [[eosio::wasm_import]] void set_parameters_packed(const void*, size_t);
 #endif
@@ -388,6 +397,11 @@ namespace eosiosystem {
    void system_contract::activate( const eosio::checksum256& feature_digest ) {
       require_auth( get_self() );
       preactivate_feature( feature_digest );
+   }
+
+   void system_contract::logsystemfee( const name& protocol, const asset& fee, const std::string& memo ) {
+      require_auth( get_self() );
+      require_recipient(fee_account);
    }
 
    void system_contract::rmvproducer( const name& producer ) {

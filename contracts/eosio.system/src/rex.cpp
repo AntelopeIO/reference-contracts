@@ -473,9 +473,8 @@ namespace eosiosystem {
     */
    void system_contract::add_loan_to_rex_pool( const asset& payment, int64_t rented_tokens, bool new_loan )
    {
-      add_to_rex_return_pool( payment );
+      channel_to_system_fee(rex_account, payment, rex_account, "rent rex");
       _rexpool.modify( _rexpool.begin(), same_payer, [&]( auto& rt ) {
-         // add payment to total_rent
          rt.total_rent.amount    += payment.amount;
          // move rented_tokens from total_unlent to total_lent
          rt.total_unlent.amount  -= rented_tokens;
@@ -565,14 +564,6 @@ namespace eosiosystem {
 
          return { delete_loan, delta_stake };
       };
-
-      /// transfer from eosio.names to eosio.rex
-      if ( pool->namebid_proceeds.amount > 0 ) {
-         channel_to_rex( names_account, pool->namebid_proceeds );
-         _rexpool.modify( pool, same_payer, [&]( auto& rt ) {
-            rt.namebid_proceeds.amount = 0;
-         });
-      }
 
       /// process cpu loans
       {
@@ -933,44 +924,6 @@ namespace eosiosystem {
          update_voting_power( owner, to_stake );
 
       return rex_in_sell_order;
-   }
-
-   /**
-    * @brief Channels system fees to REX pool
-    *
-    * @param from - account from which asset is transferred to REX pool
-    * @param amount - amount of tokens to be transferred
-    * @param required - if true, asserts when the system is not configured to channel fees into REX
-    */
-   void system_contract::channel_to_rex( const name& from, const asset& amount, bool required )
-   {
-#if CHANNEL_RAM_AND_NAMEBID_FEES_TO_REX
-      if ( rex_available() ) {
-         add_to_rex_return_pool( amount );
-         // inline transfer to rex_account
-         token::transfer_action transfer_act{ token_account, { from, active_permission } };
-         transfer_act.send( from, rex_account, amount,
-                            std::string("transfer from ") + from.to_string() + " to eosio.rex" );
-         return;
-      }
-#endif
-      eosio::check( !required, "can't channel fees to rex" );
-   }
-
-   /**
-    * @brief Updates namebid proceeds to be transferred to REX pool
-    *
-    * @param highest_bid - highest bidding amount of closed namebid
-    */
-   void system_contract::channel_namebid_to_rex( const int64_t highest_bid )
-   {
-#if CHANNEL_RAM_AND_NAMEBID_FEES_TO_REX
-      if ( rex_available() ) {
-         _rexpool.modify( _rexpool.begin(), same_payer, [&]( auto& rp ) {
-            rp.namebid_proceeds.amount += highest_bid;
-         });
-      }
-#endif
    }
 
    /**
