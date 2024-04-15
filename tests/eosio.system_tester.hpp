@@ -32,7 +32,8 @@ public:
       produce_blocks( 2 );
 
       create_accounts({ "eosio.token"_n, "eosio.ram"_n, "eosio.ramfee"_n, "eosio.stake"_n,
-               "eosio.bpay"_n, "eosio.vpay"_n, "eosio.saving"_n, "eosio.names"_n, "eosio.rex"_n });
+               "eosio.bpay"_n, "eosio.vpay"_n, "eosio.saving"_n, "eosio.names"_n,
+                "eosio.rex"_n, "eosio.fee"_n });
 
 
       produce_blocks( 100 );
@@ -80,7 +81,7 @@ public:
       create_account_with_resources( "bob111111111"_n, config::system_account_name, core_sym::from_string("0.4500"), false );
       create_account_with_resources( "carol1111111"_n, config::system_account_name, core_sym::from_string("1.0000"), false );
 
-      BOOST_REQUIRE_EQUAL( core_sym::from_string("1000000000.0000"), get_balance("eosio")  + get_balance("eosio.ramfee") + get_balance("eosio.stake") + get_balance("eosio.ram") );
+      BOOST_REQUIRE_EQUAL( core_sym::from_string("1000000000.0000"), get_balance("eosio")  + get_balance("eosio.ramfee") + get_balance("eosio.stake") + get_balance("eosio.ram") + get_balance("eosio.fee") );
    }
 
    enum class setup_level {
@@ -775,22 +776,35 @@ public:
       return push_action( name(owner), "cnclrexorder"_n, mvo()("owner", owner) );
    }
 
-   action_result rentcpu( const account_name& from, const account_name& receiver, const asset& payment, const asset& fund = core_sym::from_string("0.0000") ) {
-      return push_action( name(from), "rentcpu"_n, mvo()
+   action_result rentcpu( const account_name& from, const account_name& receiver, const asset& payment, const bool channel_to_rex, const asset& fund = core_sym::from_string("0.0000") ) {
+      const auto act_ret =  push_action( name(from), "rentcpu"_n, mvo()
                           ("from",         from)
                           ("receiver",     receiver)
                           ("loan_payment", payment)
                           ("loan_fund",    fund)
       );
+
+      if(channel_to_rex) {
+         donatetorex("eosio.fee"_n, get_balance("eosio.fee"_n), "rentcpu");
+      }
+
+      return act_ret;
    }
 
-   action_result rentnet( const account_name& from, const account_name& receiver, const asset& payment, const asset& fund = core_sym::from_string("0.0000") ) {
-      return push_action( name(from), "rentnet"_n, mvo()
+   action_result rentnet( const account_name& from, const account_name& receiver, const asset& payment, const bool channel_to_rex, const asset& fund = core_sym::from_string("0.0000") ) {
+      const auto act_ret = push_action( name(from), "rentnet"_n, mvo()
                           ("from",         from)
                           ("receiver",     receiver)
                           ("loan_payment", payment)
                           ("loan_fund",    fund)
       );
+
+      if(channel_to_rex) {
+         donatetorex("eosio.fee"_n, get_balance("eosio.fee"_n), "rentnet");
+      }
+
+      return act_ret;
+
    }
 
    asset _get_rentrex_result( const account_name& from, const account_name& receiver, const asset& payment, bool cpu ) {
