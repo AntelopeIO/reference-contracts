@@ -53,7 +53,7 @@ namespace eosiosystem {
    }
 
    symbol system_contract::core_symbol()const {
-      const static auto sym = get_core_symbol( _rammarket );
+      const static auto sym = get_core_symbol();
       return sym;
    }
 

@@ -747,8 +747,21 @@ namespace eosiosystem {
           // @param system_account - the system account to get the core symbol for.
          static symbol get_core_symbol( name system_account = "eosio"_n ) {
             rammarket rm(system_account, system_account.value);
-            const static auto sym = get_core_symbol( rm );
-            return sym;
+            auto itr = rm.find(ramcore_symbol.raw());
+            check(itr != rm.end(), "system contract must first be initialized");
+            return itr->quote.balance.symbol;
+         }
+
+         // Returns true/false if the rex system is initialized
+         static bool rex_system_initialized() {
+            eosiosystem::rex_pool_table _rexpool( "eosio"_n, "eosio"_n.value );
+            return _rexpool.begin() != _rexpool.end();
+         }
+
+         // Returns true/false if the rex system is available
+         static bool rex_available() {
+            eosiosystem::rex_pool_table _rexpool( "eosio"_n, "eosio"_n.value );
+            return rex_system_initialized() && _rexpool.begin()->total_rex.amount > 0;
          }
 
          // Actions:
@@ -1562,14 +1575,6 @@ namespace eosiosystem {
          using powerup_action = eosio::action_wrapper<"powerup"_n, &system_contract::powerup>;
 
       private:
-         // Implementation details:
-
-         static symbol get_core_symbol( const rammarket& rm ) {
-            auto itr = rm.find(ramcore_symbol.raw());
-            check(itr != rm.end(), "system contract must first be initialized");
-            return itr->quote.balance.symbol;
-         }
-
          //defined in eosio.system.cpp
          static eosio_global_state get_default_parameters();
          static eosio_global_state4 get_default_inflation_parameters();
@@ -1595,8 +1600,6 @@ namespace eosiosystem {
          void transfer_from_fund( const name& owner, const asset& amount );
          void transfer_to_fund( const name& owner, const asset& amount );
          bool rex_loans_available()const;
-         bool rex_system_initialized()const { return _rexpool.begin() != _rexpool.end(); }
-         bool rex_available()const { return rex_system_initialized() && _rexpool.begin()->total_rex.amount > 0; }
          static time_point_sec get_rex_maturity();
          asset add_to_rex_balance( const name& owner, const asset& payment, const asset& rex_received );
          asset add_to_rex_pool( const asset& payment );

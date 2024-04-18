@@ -32,11 +32,12 @@ public:
       produce_blocks( 2 );
 
       create_accounts({ "eosio.token"_n, "eosio.ram"_n, "eosio.ramfee"_n, "eosio.stake"_n,
-               "eosio.bpay"_n, "eosio.vpay"_n, "eosio.saving"_n, "eosio.names"_n, "eosio.rex"_n });
+               "eosio.bpay"_n, "eosio.vpay"_n, "eosio.saving"_n, "eosio.names"_n, "eosio.rex"_n, "eosio.fees"_n });
 
 
       produce_blocks( 100 );
       set_code( "eosio.token"_n, contracts::token_wasm());
+      set_code( "eosio.fees"_n, contracts::fees_wasm());
       set_abi( "eosio.token"_n, contracts::token_abi().data() );
       {
          const auto& accnt = control->db().get<account_object,by_name>( "eosio.token"_n );
