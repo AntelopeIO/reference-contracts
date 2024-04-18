@@ -753,14 +753,14 @@ namespace eosiosystem {
          }
 
          // Returns true/false if the rex system is initialized
-         static bool rex_system_initialized() {
-            eosiosystem::rex_pool_table _rexpool( "eosio"_n, "eosio"_n.value );
+         static bool rex_system_initialized( name system_account = "eosio"_n ) {
+            eosiosystem::rex_pool_table _rexpool( system_account, system_account.value );
             return _rexpool.begin() != _rexpool.end();
          }
 
          // Returns true/false if the rex system is available
-         static bool rex_available() {
-            eosiosystem::rex_pool_table _rexpool( "eosio"_n, "eosio"_n.value );
+         static bool rex_available( name system_account = "eosio"_n ) {
+            eosiosystem::rex_pool_table _rexpool( system_account, system_account.value );
             return rex_system_initialized() && _rexpool.begin()->total_rex.amount > 0;
          }
 
