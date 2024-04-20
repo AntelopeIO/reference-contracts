@@ -44,7 +44,7 @@ BOOST_FIXTURE_TEST_CASE( buysell, eosio_system_tester ) try {
    BOOST_REQUIRE_EQUAL( success(), buyram( "alice1111111", "alice1111111", core_sym::from_string("200.0000") ) );
    BOOST_REQUIRE_EQUAL( core_sym::from_string("800.0000"), get_balance( "alice1111111" ) );
    BOOST_REQUIRE_EQUAL( initial_ram_balance + core_sym::from_string("199.0000"), get_balance("eosio.ram"_n) );
-   BOOST_REQUIRE_EQUAL( initial_ramfee_balance + core_sym::from_string("1.0000"), get_balance("eosio.ramfee"_n) );
+   BOOST_REQUIRE_EQUAL( initial_ramfee_balance + core_sym::from_string("1.0000"), get_balance("eosio.fees"_n) );
 
    total = get_total_stake( "alice1111111" );
    auto bytes = total["ram_bytes"].as_uint64();
@@ -4729,16 +4729,16 @@ BOOST_FIXTURE_TEST_CASE( ramfee_namebid_to_rex, eosio_system_tester ) try {
 
    asset cur_ramfee_balance = get_balance( "eosio.ramfee"_n );
    BOOST_REQUIRE_EQUAL( success(),                      buyram( alice, alice, core_sym::from_string("20.0000") ) );
-   BOOST_REQUIRE_EQUAL( get_balance( "eosio.ramfee"_n ), core_sym::from_string("0.1000") + cur_ramfee_balance );
+   BOOST_REQUIRE_EQUAL( get_balance( "eosio.fees"_n ), core_sym::from_string("0.1000") + cur_ramfee_balance );
    BOOST_REQUIRE_EQUAL( wasm_assert_msg("must deposit to REX fund first"),
                         buyrex( alice, core_sym::from_string("350.0000") ) );
    BOOST_REQUIRE_EQUAL( success(),                      deposit( alice, core_sym::from_string("350.0000") ) );
    BOOST_REQUIRE_EQUAL( success(),                      buyrex( alice, core_sym::from_string("350.0000") ) );
-   cur_ramfee_balance = get_balance( "eosio.ramfee"_n );
+   cur_ramfee_balance = get_balance( "eosio.fees"_n );
    asset cur_rex_balance = get_balance( "eosio.rex"_n );
    BOOST_REQUIRE_EQUAL( core_sym::from_string("350.0000"), cur_rex_balance );
    BOOST_REQUIRE_EQUAL( success(),                         buyram( bob, carol, core_sym::from_string("70.0000") ) );
-   BOOST_REQUIRE_EQUAL( cur_ramfee_balance,                get_balance( "eosio.ramfee"_n ) );
+   BOOST_REQUIRE_EQUAL( cur_ramfee_balance,                get_balance( "eosio.fees"_n ) );
    BOOST_REQUIRE_EQUAL( get_balance( "eosio.rex"_n ),       cur_rex_balance + core_sym::from_string("0.3500") );
 
    cur_rex_balance = get_balance( "eosio.rex"_n );

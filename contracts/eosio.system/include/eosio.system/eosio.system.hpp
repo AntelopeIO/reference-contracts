@@ -734,6 +734,7 @@ namespace eosiosystem {
          static constexpr eosio::name names_account{"eosio.names"_n};
          static constexpr eosio::name saving_account{"eosio.saving"_n};
          static constexpr eosio::name rex_account{"eosio.rex"_n};
+         static constexpr eosio::name fees_account{"eosio.fees"_n};
          static constexpr eosio::name reserve_account{"eosio.reserv"_n}; // cspell:disable-line
          static constexpr eosio::name null_account{"eosio.null"_n};
          static constexpr symbol ramcore_symbol = symbol(symbol_code("RAMCORE"), 4);
@@ -1580,6 +1581,7 @@ namespace eosiosystem {
          static eosio_global_state4 get_default_inflation_parameters();
          symbol core_symbol()const;
          void update_ram_supply();
+         void channel_to_system_fees( const name& from, const asset& amount );
 
          // defined in rex.cpp
          void runrex( uint16_t max );
@@ -1589,8 +1591,6 @@ namespace eosiosystem {
                                         const char* error_msg = "must vote for at least 21 producers or for a proxy before buying REX" )const;
          rex_order_outcome fill_rex_order( const rex_balance_table::const_iterator& bitr, const asset& rex );
          asset update_rex_account( const name& owner, const asset& proceeds, const asset& unstake_quant, bool force_vote_update = false );
-         void channel_to_rex( const name& from, const asset& amount, bool required = false );
-         void channel_namebid_to_rex( const int64_t highest_bid );
          template <typename T>
          int64_t rent_rex( T& table, const name& from, const name& receiver, const asset& loan_payment, const asset& loan_fund );
          template <typename T>
