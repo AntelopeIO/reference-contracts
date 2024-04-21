@@ -475,6 +475,8 @@ namespace eosiosystem {
    {
       channel_to_system_fees( get_self(), payment );
       _rexpool.modify( _rexpool.begin(), same_payer, [&]( auto& rt ) {
+         // add payment to total_rent
+         rt.total_rent.amount    += payment.amount;
          // move rented_tokens from total_unlent to total_lent
          rt.total_unlent.amount  -= rented_tokens;
          rt.total_lent.amount    += rented_tokens;
