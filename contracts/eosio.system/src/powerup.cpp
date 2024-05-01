@@ -387,7 +387,7 @@ void system_contract::powerup(const name& payer, const name& receiver, uint32_t 
 
    adjust_resources(payer, receiver, core_symbol, net_amount, cpu_amount, true);
    adjust_resources(get_self(), reserve_account, core_symbol, net_delta_available, cpu_delta_available, true);
-   channel_to_rex(payer, fee, true);
+   channel_to_system_fees(payer, fee);
    state_sing.set(state, get_self());
 
    // inline noop action

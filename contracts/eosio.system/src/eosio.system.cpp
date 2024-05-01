@@ -109,6 +109,11 @@ namespace eosiosystem {
       _gstate2.new_ram_per_block = bytes_per_block;
    }
 
+   void system_contract::channel_to_system_fees( const name& from, const asset& amount ) {
+      token::transfer_action transfer_act{ token_account, { from, active_permission } };
+      transfer_act.send( from, fees_account, amount, "transfer from " + from.to_string() + " to " + fees_account.to_string() );
+   }
+
 #ifdef SYSTEM_BLOCKCHAIN_PARAMETERS
    extern "C" [[eosio::wasm_import]] void set_parameters_packed(const void*, size_t);
 #endif

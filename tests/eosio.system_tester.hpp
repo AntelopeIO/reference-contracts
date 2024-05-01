@@ -81,7 +81,7 @@ public:
       create_account_with_resources( "bob111111111"_n, config::system_account_name, core_sym::from_string("0.4500"), false );
       create_account_with_resources( "carol1111111"_n, config::system_account_name, core_sym::from_string("1.0000"), false );
 
-      BOOST_REQUIRE_EQUAL( core_sym::from_string("1000000000.0000"), get_balance("eosio")  + get_balance("eosio.ramfee") + get_balance("eosio.stake") + get_balance("eosio.ram") );
+      BOOST_REQUIRE_EQUAL( core_sym::from_string("1000000000.0000"), get_balance("eosio")  + get_balance("eosio.ramfee") + get_balance("eosio.stake") + get_balance("eosio.ram") + get_balance("eosio.fees") );
    }
 
    enum class setup_level {
