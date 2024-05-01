@@ -4,7 +4,7 @@
       "prerelease":false
    },
    "cdt":{
-      "target":"hotstuff_integration",
+      "target":"main",
       "prerelease":false
    }
 }
