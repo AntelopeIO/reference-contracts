@@ -56,12 +56,12 @@ namespace eosiosystem {
       check( quant.symbol == core_symbol(), "must buy ram with core token" );
       check( quant.amount > 0, "must purchase a positive amount" );
 
-      auto fee = quant;
+      asset fee = quant;
       fee.amount = ( fee.amount + 199 ) / 200; /// .5% fee (round up)
       // fee.amount cannot be 0 since that is only possible if quant.amount is 0 which is not allowed by the assert above.
       // If quant.amount == 1, then fee.amount == 1,
       // otherwise if quant.amount > 1, then 0 < fee.amount < quant.amount.
-      auto quant_after_fee = quant;
+      asset quant_after_fee = quant;
       quant_after_fee.amount -= fee.amount;
       // quant_after_fee.amount should be > 0 if quant.amount > 1.
       // If quant.amount == 1, then quant_after_fee.amount == 0 and the next inline transfer will fail causing the buyram action to fail.
@@ -91,7 +91,10 @@ namespace eosiosystem {
 
       // logging
       system_contract::logbuyram_action logbuyram_act{ get_self(), { {get_self(), active_permission} } };
+      system_contract::logsystemfee_action logsystemfee_act{ get_self(), { {get_self(), active_permission} } };
+
       logbuyram_act.send( payer, receiver, quant, bytes_out, ram_bytes, fee );
+      logsystemfee_act.send( ram_account, fee, "buy ram" );
 
       // action return value
       return action_return_buyram{ payer, receiver, quant, bytes_out, ram_bytes, fee };
@@ -134,7 +137,7 @@ namespace eosiosystem {
          token::transfer_action transfer_act{ token_account, { {ram_account, active_permission}, {account, active_permission} } };
          transfer_act.send( ram_account, account, asset(tokens_out), "sell ram" );
       }
-      auto fee = ( tokens_out.amount + 199 ) / 200; /// .5% fee (round up)
+      const int64_t fee = ( tokens_out.amount + 199 ) / 200; /// .5% fee (round up)
       // since tokens_out.amount was asserted to be at least 2 earlier, fee.amount < tokens_out.amount
       if ( fee > 0 ) {
          token::transfer_action transfer_act{ token_account, { {account, active_permission} } };
@@ -144,7 +147,10 @@ namespace eosiosystem {
 
       // logging
       system_contract::logsellram_action logsellram_act{ get_self(), { {get_self(), active_permission} } };
+      system_contract::logsystemfee_action logsystemfee_act{ get_self(), { {get_self(), active_permission} } };
+
       logsellram_act.send( account, tokens_out, bytes, ram_bytes, asset(fee, core_symbol() ) );
+      logsystemfee_act.send( ram_account, asset(fee, core_symbol() ), "sell ram" );
 
       // action return value
       return action_return_sellram{ account, tokens_out, bytes, ram_bytes, asset(fee, core_symbol() ) };

@@ -766,6 +766,10 @@ namespace eosiosystem {
 
       rex_results::rentresult_action rentresult_act{ rex_account, std::vector<eosio::permission_level>{ } };
       rentresult_act.send( asset{ rented_tokens, core_symbol() } );
+
+      // logging
+      system_contract::logsystemfee_action logsystemfee_act{ get_self(), { {get_self(), active_permission} } };
+      logsystemfee_act.send( rex_account, payment, "rent rex" );
       return rented_tokens;
    }
 

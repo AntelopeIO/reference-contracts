@@ -735,6 +735,7 @@ namespace eosiosystem {
          static constexpr eosio::name saving_account{"eosio.saving"_n};
          static constexpr eosio::name rex_account{"eosio.rex"_n};
          static constexpr eosio::name fees_account{"eosio.fees"_n};
+         static constexpr eosio::name powerup_account{"eosio.powup"_n};
          static constexpr eosio::name reserve_account{"eosio.reserv"_n}; // cspell:disable-line
          static constexpr eosio::name null_account{"eosio.null"_n};
          static constexpr symbol ramcore_symbol = symbol(symbol_code("RAMCORE"), 4);
@@ -838,6 +839,16 @@ namespace eosiosystem {
           */
          [[eosio::action]]
          void activate( const eosio::checksum256& feature_digest );
+
+         /**
+          * Logging for actions resulting in system fees.
+          *
+          * @param protocol - name of protocol fees were earned from.
+          * @param fee - the amount of fees collected by system.
+          * @param memo - (optional) the memo associated with the action.
+          */
+         [[eosio::action]]
+         void logsystemfee( const name& protocol, const asset& fee, const std::string& memo );
 
          // functions defined in delegate_bandwidth.cpp
 
@@ -1522,6 +1533,7 @@ namespace eosiosystem {
          using setacctnet_action = eosio::action_wrapper<"setacctnet"_n, &system_contract::setacctnet>;
          using setacctcpu_action = eosio::action_wrapper<"setacctcpu"_n, &system_contract::setacctcpu>;
          using activate_action = eosio::action_wrapper<"activate"_n, &system_contract::activate>;
+         using logsystemfee_action = eosio::action_wrapper<"logsystemfee"_n, &system_contract::logsystemfee>;
          using delegatebw_action = eosio::action_wrapper<"delegatebw"_n, &system_contract::delegatebw>;
          using deposit_action = eosio::action_wrapper<"deposit"_n, &system_contract::deposit>;
          using withdraw_action = eosio::action_wrapper<"withdraw"_n, &system_contract::withdraw>;
