@@ -820,6 +820,7 @@ namespace eosiosystem {
          static constexpr eosio::name names_account{"eosio.names"_n};
          static constexpr eosio::name saving_account{"eosio.saving"_n};
          static constexpr eosio::name rex_account{"eosio.rex"_n};
+         static constexpr eosio::name fees_account{"eosio.fees"_n};
          static constexpr eosio::name powerup_account{"eosio.powup"_n};
          static constexpr eosio::name reserve_account{"eosio.reserv"_n}; // cspell:disable-line
          static constexpr eosio::name null_account{"eosio.null"_n};
@@ -834,8 +835,21 @@ namespace eosiosystem {
           // @param system_account - the system account to get the core symbol for.
          static symbol get_core_symbol( name system_account = "eosio"_n ) {
             rammarket rm(system_account, system_account.value);
-            const static auto sym = get_core_symbol( rm );
-            return sym;
+            auto itr = rm.find(ramcore_symbol.raw());
+            check(itr != rm.end(), "system contract must first be initialized");
+            return itr->quote.balance.symbol;
+         }
+
+         // Returns true/false if the rex system is initialized
+         static bool rex_system_initialized( name system_account = "eosio"_n ) {
+            eosiosystem::rex_pool_table _rexpool( system_account, system_account.value );
+            return _rexpool.begin() != _rexpool.end();
+         }
+
+         // Returns true/false if the rex system is available
+         static bool rex_available( name system_account = "eosio"_n ) {
+            eosiosystem::rex_pool_table _rexpool( system_account, system_account.value );
+            return rex_system_initialized() && _rexpool.begin()->total_rex.amount > 0;
          }
 
          // Actions:
@@ -1722,19 +1736,12 @@ namespace eosiosystem {
          using powerup_action = eosio::action_wrapper<"powerup"_n, &system_contract::powerup>;
 
       private:
-         // Implementation details:
-
-         static symbol get_core_symbol( const rammarket& rm ) {
-            auto itr = rm.find(ramcore_symbol.raw());
-            check(itr != rm.end(), "system contract must first be initialized");
-            return itr->quote.balance.symbol;
-         }
-
          //defined in eosio.system.cpp
          static eosio_global_state get_default_parameters();
          static eosio_global_state4 get_default_inflation_parameters();
          symbol core_symbol()const;
          void update_ram_supply();
+         void channel_to_system_fees( const name& from, const asset& amount );
 
          // defined in rex.cpp
          void runrex( uint16_t max );
@@ -1744,8 +1751,6 @@ namespace eosiosystem {
                                         const char* error_msg = "must vote for at least 21 producers or for a proxy before buying REX" )const;
          rex_order_outcome fill_rex_order( const rex_balance_table::const_iterator& bitr, const asset& rex );
          asset update_rex_account( const name& owner, const asset& proceeds, const asset& unstake_quant, bool force_vote_update = false );
-         void channel_to_rex( const name& from, const asset& amount, bool required = false );
-         void channel_namebid_to_rex( const int64_t highest_bid );
          template <typename T>
          int64_t rent_rex( T& table, const name& from, const name& receiver, const asset& loan_payment, const asset& loan_fund );
          template <typename T>
@@ -1755,8 +1760,6 @@ namespace eosiosystem {
          void transfer_from_fund( const name& owner, const asset& amount );
          void transfer_to_fund( const name& owner, const asset& amount );
          bool rex_loans_available()const;
-         bool rex_system_initialized()const { return _rexpool.begin() != _rexpool.end(); }
-         bool rex_available()const { return rex_system_initialized() && _rexpool.begin()->total_rex.amount > 0; }
          static time_point_sec get_rex_maturity();
          asset add_to_rex_balance( const name& owner, const asset& payment, const asset& rex_received );
          asset add_to_rex_pool( const asset& payment );

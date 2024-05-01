@@ -32,11 +32,12 @@ public:
       produce_blocks( 2 );
 
       create_accounts({ "eosio.token"_n, "eosio.ram"_n, "eosio.ramfee"_n, "eosio.stake"_n,
-               "eosio.bpay"_n, "eosio.vpay"_n, "eosio.saving"_n, "eosio.names"_n, "eosio.rex"_n });
+               "eosio.bpay"_n, "eosio.vpay"_n, "eosio.saving"_n, "eosio.names"_n, "eosio.rex"_n, "eosio.fees"_n });
 
 
       produce_blocks( 100 );
       set_code( "eosio.token"_n, contracts::token_wasm());
+      set_code( "eosio.fees"_n, contracts::fees_wasm());
       set_abi( "eosio.token"_n, contracts::token_abi().data() );
       {
          const auto& accnt = control->db().get<account_object,by_name>( "eosio.token"_n );
@@ -80,7 +81,7 @@ public:
       create_account_with_resources( "bob111111111"_n, config::system_account_name, core_sym::from_string("0.4500"), false );
       create_account_with_resources( "carol1111111"_n, config::system_account_name, core_sym::from_string("1.0000"), false );
 
-      BOOST_REQUIRE_EQUAL( core_sym::from_string("1000000000.0000"), get_balance("eosio")  + get_balance("eosio.ramfee") + get_balance("eosio.stake") + get_balance("eosio.ram") );
+      BOOST_REQUIRE_EQUAL( core_sym::from_string("1000000000.0000"), get_balance("eosio")  + get_balance("eosio.ramfee") + get_balance("eosio.stake") + get_balance("eosio.ram") + get_balance("eosio.fees") );
    }
 
    enum class setup_level {
