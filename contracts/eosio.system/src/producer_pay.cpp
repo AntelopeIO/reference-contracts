@@ -65,6 +65,11 @@ namespace eosiosystem {
             ) {
                _gstate.last_name_close = timestamp;
                channel_namebid_to_rex( highest->high_bid );
+
+               // logging
+               system_contract::logsystemfee_action logsystemfee_act{ get_self(), { {get_self(), active_permission} } };
+               logsystemfee_act.send( names_account, asset( highest->high_bid, core_symbol() ), "buy name" );
+
                idx.modify( highest, same_payer, [&]( auto& b ){
                   b.high_bid = -b.high_bid;
                });
