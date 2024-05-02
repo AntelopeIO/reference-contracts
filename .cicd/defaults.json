@@ -1,6 +1,6 @@
 {
    "leap-dev":{
-      "target":"5",
+      "target":"hotstuff_integration",
       "prerelease":false
    },
    "cdt":{
