@@ -1206,7 +1206,8 @@ namespace eosiosystem {
           * @param fee - the fee to be paid for the ram sold.
           */
          [[eosio::action]]
-         void logbuyram( const name& payer, const name& receiver, const asset& quantity, int64_t bytes, int64_t ram_bytes, const asset& fee );
+         void logbuyram( const name& payer, const name& receiver, const asset& quantity, int64_t bytes, int64_t ram_bytes, 
+            const eosio::binary_extension<asset>& fee );
 
          /**
           * Sell ram action, reduces quota by bytes and then performs an inline transfer of tokens
@@ -1228,7 +1229,8 @@ namespace eosiosystem {
           * @param fee - the fee to be paid for the ram sold.
           */
          [[eosio::action]]
-         void logsellram( const name& account, const asset& quantity, int64_t bytes, int64_t ram_bytes, const asset& fee );
+         void logsellram( const name& account, const asset& quantity, int64_t bytes, int64_t ram_bytes, 
+            const eosio::binary_extension<asset>& fee );
 
          /**
           * Transfer ram action, reduces sender's quota by bytes and increase receiver's quota by bytes.

@@ -100,7 +100,7 @@ namespace eosiosystem {
       return action_return_buyram{ payer, receiver, quant, bytes_out, ram_bytes, fee };
    }
 
-   void system_contract::logbuyram( const name& payer, const name& receiver, const asset& quantity, int64_t bytes, int64_t ram_bytes, const asset& fee ) {
+   void system_contract::logbuyram( const name& payer, const name& receiver, const asset& quantity, int64_t bytes, int64_t ram_bytes, const eosio::binary_extension<asset>& fee ) {
       require_auth( get_self() );
       require_recipient(payer);
       require_recipient(receiver);
@@ -156,7 +156,7 @@ namespace eosiosystem {
       return action_return_sellram{ account, tokens_out, bytes, ram_bytes, asset(fee, core_symbol() ) };
    }
 
-   void system_contract::logsellram( const name& account, const asset& quantity, int64_t bytes, int64_t ram_bytes, const asset& fee ) {
+   void system_contract::logsellram( const name& account, const asset& quantity, int64_t bytes, int64_t ram_bytes, const eosio::binary_extension<asset>& fee ) {
       require_auth( get_self() );
       require_recipient(account);
    }
