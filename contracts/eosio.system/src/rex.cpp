@@ -8,6 +8,21 @@ namespace eosiosystem {
    using eosio::token;
    using eosio::seconds;
 
+   void system_contract::setrexmature(const std::optional<uint32_t> num_of_maturity_buckets, const std::optional<bool> sell_matured_rex, const std::optional<bool> buy_rex_to_savings )
+   {
+      require_auth(get_self());
+
+      auto state = _rexmaturity.get_or_default();
+
+      check(*num_of_maturity_buckets > 0, "num_of_maturity_buckets must be positive");
+      check(*num_of_maturity_buckets <= 30, "num_of_maturity_buckets must be less than or equal to 30");
+
+      if ( num_of_maturity_buckets ) state.num_of_maturity_buckets = *num_of_maturity_buckets;
+      if ( sell_matured_rex ) state.sell_matured_rex = *sell_matured_rex;
+      if ( buy_rex_to_savings ) state.buy_rex_to_savings = *buy_rex_to_savings;
+      _rexmaturity.set(state, get_self());
+   }
+
    void system_contract::deposit( const name& owner, const asset& amount )
    {
       require_auth( owner );
@@ -43,12 +58,15 @@ namespace eosiosystem {
 
       check( amount.symbol == core_symbol(), "asset must be core token" );
       check( 0 < amount.amount, "must use positive amount" );
-      check_voting_requirement( from );
       transfer_from_fund( from, amount );
       const asset rex_received    = add_to_rex_pool( amount );
       const asset delta_rex_stake = add_to_rex_balance( from, amount, rex_received );
       runrex(2);
       update_rex_account( from, asset( 0, core_symbol() ), delta_rex_stake );
+
+      process_buy_rex_to_savings( from, rex_received );
+      process_sell_matured_rex( from );
+
       // dummy action added so that amount of REX tokens purchased shows up in action trace
       rex_results::buyresult_action buyrex_act( rex_account, std::vector<eosio::permission_level>{ } );
       buyrex_act.send( rex_received );
@@ -61,7 +79,6 @@ namespace eosiosystem {
       check( from_net.symbol == core_symbol() && from_cpu.symbol == core_symbol(), "asset must be core token" );
       check( (0 <= from_net.amount) && (0 <= from_cpu.amount) && (0 < from_net.amount || 0 < from_cpu.amount),
              "must unstake a positive amount to buy rex" );
-      check_voting_requirement( owner );
 
       {
          del_bandwidth_table dbw_table( get_self(), owner.value );
@@ -89,6 +106,10 @@ namespace eosiosystem {
       auto rex_stake_delta = add_to_rex_balance( owner, payment, rex_received );
       runrex(2);
       update_rex_account( owner, asset( 0, core_symbol() ), rex_stake_delta - payment, true );
+
+      process_buy_rex_to_savings( owner, rex_received );
+      process_sell_matured_rex( owner );
+
       // dummy action added so that amount of REX tokens purchased shows up in action trace
       rex_results::buyresult_action buyrex_act( rex_account, std::vector<eosio::permission_level>{ } );
       buyrex_act.send( rex_received );
@@ -97,7 +118,12 @@ namespace eosiosystem {
    void system_contract::sellrex( const name& from, const asset& rex )
    {
       require_auth( from );
+      sell_rex( from, rex );
+      process_sell_matured_rex( from );
+   }
 
+   void system_contract::sell_rex( const name& from, const asset& rex )
+   {
       runrex(2);
 
       auto bitr = _rexbalance.require_find( from.value, "user must first buyrex" );
@@ -354,6 +380,26 @@ namespace eosiosystem {
    }
 
    /**
+    * @brief Updates REX pool and deposits token to eosio.rex
+    *
+    * @param payer - the payer of donated funds.
+    * @param quantity - the quantity of tokens to donated to REX with.
+    * @param memo - the memo string to accompany the transfer.
+    */
+   void system_contract::donatetorex( const name& payer, const asset& quantity, const std::string& memo )
+   {
+      require_auth( payer );
+      check( rex_available(), "rex system is not initialized" );
+      check( quantity.symbol == core_symbol(), "quantity must be core token" );
+      check( quantity.amount > 0, "quantity must be positive" );
+
+      add_to_rex_return_pool( quantity );
+      // inline transfer to rex_account
+      token::transfer_action transfer_act{ token_account, { payer, active_permission } };
+      transfer_act.send( payer, rex_account, quantity, memo );
+   }
+
+   /**
     * @brief Updates account NET and CPU resource limits
     *
     * @param from - account charged for RAM if there is a need
@@ -412,19 +458,6 @@ namespace eosiosystem {
    }
 
    /**
-    * @brief Checks if account satisfies voting requirement (voting for a proxy or 21 producers)
-    * for buying REX
-    *
-    * @param owner - account buying or already holding REX tokens
-    * @err_msg - error message
-    */
-   void system_contract::check_voting_requirement( const name& owner, const char* error_msg )const
-   {
-      auto vitr = _voters.find( owner.value );
-      check( vitr != _voters.end() && ( vitr->proxy || 21 <= vitr->producers.size() ), error_msg );
-   }
-
-   /**
     * @brief Checks if CPU and Network loans are available
     *
     * Loans are available if 1) REX pool lendable balance is nonempty, and 2) there are no
@@ -453,7 +486,7 @@ namespace eosiosystem {
     */
    void system_contract::add_loan_to_rex_pool( const asset& payment, int64_t rented_tokens, bool new_loan )
    {
-      add_to_rex_return_pool( payment );
+      channel_to_system_fees( get_self(), payment );
       _rexpool.modify( _rexpool.begin(), same_payer, [&]( auto& rt ) {
          // add payment to total_rent
          rt.total_rent.amount    += payment.amount;
@@ -545,14 +578,6 @@ namespace eosiosystem {
 
          return { delete_loan, delta_stake };
       };
-
-      /// transfer from eosio.names to eosio.rex
-      if ( pool->namebid_proceeds.amount > 0 ) {
-         channel_to_rex( names_account, pool->namebid_proceeds );
-         _rexpool.modify( pool, same_payer, [&]( auto& rt ) {
-            rt.namebid_proceeds.amount = 0;
-         });
-      }
 
       /// process cpu loans
       {
@@ -754,6 +779,10 @@ namespace eosiosystem {
 
       rex_results::rentresult_action rentresult_act{ rex_account, std::vector<eosio::permission_level>{ } };
       rentresult_act.send( asset{ rented_tokens, core_symbol() } );
+
+      // logging
+      system_contract::logsystemfee_action logsystemfee_act{ get_self(), { {get_self(), active_permission} } };
+      logsystemfee_act.send( rex_account, payment, "rent rex" );
       return rented_tokens;
    }
 
@@ -916,52 +945,15 @@ namespace eosiosystem {
    }
 
    /**
-    * @brief Channels system fees to REX pool
-    *
-    * @param from - account from which asset is transferred to REX pool
-    * @param amount - amount of tokens to be transferred
-    * @param required - if true, asserts when the system is not configured to channel fees into REX
-    */
-   void system_contract::channel_to_rex( const name& from, const asset& amount, bool required )
-   {
-#if CHANNEL_RAM_AND_NAMEBID_FEES_TO_REX
-      if ( rex_available() ) {
-         add_to_rex_return_pool( amount );
-         // inline transfer to rex_account
-         token::transfer_action transfer_act{ token_account, { from, active_permission } };
-         transfer_act.send( from, rex_account, amount,
-                            std::string("transfer from ") + from.to_string() + " to eosio.rex" );
-         return;
-      }
-#endif
-      eosio::check( !required, "can't channel fees to rex" );
-   }
-
-   /**
-    * @brief Updates namebid proceeds to be transferred to REX pool
-    *
-    * @param highest_bid - highest bidding amount of closed namebid
-    */
-   void system_contract::channel_namebid_to_rex( const int64_t highest_bid )
-   {
-#if CHANNEL_RAM_AND_NAMEBID_FEES_TO_REX
-      if ( rex_available() ) {
-         _rexpool.modify( _rexpool.begin(), same_payer, [&]( auto& rp ) {
-            rp.namebid_proceeds.amount += highest_bid;
-         });
-      }
-#endif
-   }
-
-   /**
-    * @brief Calculates maturity time of purchased REX tokens which is 4 days from end
+    * @brief Calculates maturity time of purchased REX tokens which is {num_of_maturity_buckets} days from end
     * of the day UTC
     *
     * @return time_point_sec
     */
-   time_point_sec system_contract::get_rex_maturity()
+   time_point_sec system_contract::get_rex_maturity( const name& system_account_name )
    {
-      const uint32_t num_of_maturity_buckets = 5;
+      rex_maturity_singleton _rexmaturity(system_account_name, system_account_name.value);
+      const uint32_t num_of_maturity_buckets = _rexmaturity.get_or_default().num_of_maturity_buckets; // default 5
       static const uint32_t now = current_time_point().sec_since_epoch();
       static const uint32_t r   = now % seconds_per_day;
       static const time_point_sec rms{ now - r + num_of_maturity_buckets * seconds_per_day };
@@ -982,6 +974,38 @@ namespace eosiosystem {
             rb.rex_maturities.erase(rb.rex_maturities.begin());
          }
       });
+   }
+
+   /**
+    * @brief Sells matured REX tokens
+    *        https://github.com/eosnetworkfoundation/eos-system-contracts/issues/134
+    *
+    * @param owner - owner account name
+    */
+   void system_contract::process_sell_matured_rex( const name owner )
+   {
+      const auto rex_maturity_state = _rexmaturity.get_or_default();
+      if ( rex_maturity_state.sell_matured_rex == false ) return; // skip selling matured REX
+
+      const auto itr = _rexbalance.find( owner.value );
+      if ( itr->matured_rex > 0 ) {
+         sell_rex(owner, asset(itr->matured_rex, rex_symbol));
+      }
+   }
+
+   /**
+    * @brief Move new REX tokens to savings
+    *        https://github.com/eosnetworkfoundation/eos-system-contracts/issues/135
+    *
+    * @param owner - owner account name
+    * @param rex - amount of REX tokens to be moved to savings
+    */
+   void system_contract::process_buy_rex_to_savings( const name owner, const asset rex )
+   {
+      const auto rex_maturity_state = _rexmaturity.get_or_default();
+      if ( rex_maturity_state.buy_rex_to_savings && rex.amount > 0 ) {
+         mvtosavings( owner, rex );
+      }
    }
 
    /**

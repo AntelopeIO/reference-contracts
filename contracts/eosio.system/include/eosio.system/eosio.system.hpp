@@ -97,9 +97,9 @@ namespace eosiosystem {
 
   /**
    * The `eosio.system` smart contract is provided by `block.one` as a sample system contract, and it defines the structures and actions needed for blockchain's core functionality.
-   * 
+   *
    * Just like in the `eosio.bios` sample contract implementation, there are a few actions which are not implemented at the contract level (`newaccount`, `updateauth`, `deleteauth`, `linkauth`, `unlinkauth`, `canceldelay`, `onerror`, `setabi`, `setcode`), they are just declared in the contract so they will show in the contract's ABI and users will be able to push those actions to the chain via the account holding the `eosio.system` contract, but the implementation is at the EOSIO core level. They are referred to as EOSIO native actions.
-   * 
+   *
    * - Users can stake tokens for CPU and Network bandwidth, and then vote for producers or
    *    delegate their vote to a proxy.
    * - Producers register in order to be voted for, and can claim per-block and per-vote rewards.
@@ -108,7 +108,7 @@ namespace eosiosystem {
    * - A resource exchange system (REX) allows token holders to lend their tokens,
    *    and users to rent CPU and Network resources in return for a market-determined fee.
    */
-  
+
    // A name bid, which consists of:
    // - a `newname` name that the bid is for
    // - a `high_bidder` account name that is the one with the highest bid so far
@@ -199,7 +199,16 @@ namespace eosiosystem {
       EOSLIB_SERIALIZE( eosio_global_state4, (continuous_rate)(inflation_pay_factor)(votepay_factor) )
    };
 
+   // Defines the schedule for pre-determined annual rate changes.
+   struct [[eosio::table, eosio::contract("eosio.system")]] schedules_info {
+      time_point_sec start_time;
+      double   continuous_rate;
 
+      uint64_t primary_key() const { return start_time.sec_since_epoch(); }
+
+      // explicit serialization macro is not necessary, used here only to improve compilation time
+      EOSLIB_SERIALIZE( schedules_info, (start_time)(continuous_rate) )
+   };
 
    inline eosio::block_signing_authority convert_to_block_signing_authority( const eosio::public_key& producer_key ) {
       return eosio::block_signing_authority_v0{ .threshold = 1, .keys = {{producer_key, 1}} };
@@ -411,6 +420,8 @@ namespace eosiosystem {
 
    typedef eosio::multi_index< "producers2"_n, producer_info2 > producers_table2;
 
+   typedef eosio::multi_index< "schedules"_n, schedules_info > schedules_table;
+
    typedef eosio::singleton< "global"_n, eosio_global_state >   global_state_singleton;
 
    typedef eosio::singleton< "global2"_n, eosio_global_state2 > global_state2_singleton;
@@ -620,6 +631,14 @@ namespace eosiosystem {
    typedef eosio::multi_index< "rexqueue"_n, rex_order,
                                indexed_by<"bytime"_n, const_mem_fun<rex_order, uint64_t, &rex_order::by_time>>> rex_order_table;
 
+   struct [[eosio::table("rexmaturity"),eosio::contract("eosio.system")]] rex_maturity {
+      uint32_t num_of_maturity_buckets = 5;
+      bool sell_matured_rex = false;
+      bool buy_rex_to_savings = false;
+   };
+
+   typedef eosio::singleton<"rexmaturity"_n, rex_maturity> rex_maturity_singleton;
+
    struct rex_order_outcome {
       bool success;
       asset proceeds;
@@ -631,6 +650,7 @@ namespace eosiosystem {
       asset quantity;
       int64_t bytes_sold;
       int64_t ram_bytes;
+      asset fee;
    };
 
    struct action_return_buyram {
@@ -639,6 +659,7 @@ namespace eosiosystem {
       asset quantity;
       int64_t bytes_purchased;
       int64_t ram_bytes;
+      asset fee;
    };
 
    struct action_return_ramtransfer {
@@ -799,6 +820,7 @@ namespace eosiosystem {
          eosio_global_state2      _gstate2;
          eosio_global_state3      _gstate3;
          eosio_global_state4      _gstate4;
+         schedules_table          _schedules;
          rammarket                _rammarket;
          rex_pool_table           _rexpool;
          rex_return_pool_table    _rexretpool;
@@ -806,6 +828,7 @@ namespace eosiosystem {
          rex_fund_table           _rexfunds;
          rex_balance_table        _rexbalance;
          rex_order_table          _rexorders;
+         rex_maturity_singleton   _rexmaturity;
 
       public:
          static constexpr eosio::name active_permission{"active"_n};
@@ -818,6 +841,8 @@ namespace eosiosystem {
          static constexpr eosio::name names_account{"eosio.names"_n};
          static constexpr eosio::name saving_account{"eosio.saving"_n};
          static constexpr eosio::name rex_account{"eosio.rex"_n};
+         static constexpr eosio::name fees_account{"eosio.fees"_n};
+         static constexpr eosio::name powerup_account{"eosio.powup"_n};
          static constexpr eosio::name reserve_account{"eosio.reserv"_n}; // cspell:disable-line
          static constexpr eosio::name null_account{"eosio.null"_n};
          static constexpr symbol ramcore_symbol = symbol(symbol_code("RAMCORE"), 4);
@@ -831,8 +856,21 @@ namespace eosiosystem {
           // @param system_account - the system account to get the core symbol for.
          static symbol get_core_symbol( name system_account = "eosio"_n ) {
             rammarket rm(system_account, system_account.value);
-            const static auto sym = get_core_symbol( rm );
-            return sym;
+            auto itr = rm.find(ramcore_symbol.raw());
+            check(itr != rm.end(), "system contract must first be initialized");
+            return itr->quote.balance.symbol;
+         }
+
+         // Returns true/false if the rex system is initialized
+         static bool rex_system_initialized( name system_account = "eosio"_n ) {
+            eosiosystem::rex_pool_table _rexpool( system_account, system_account.value );
+            return _rexpool.begin() != _rexpool.end();
+         }
+
+         // Returns true/false if the rex system is available
+         static bool rex_available( name system_account = "eosio"_n ) {
+            eosiosystem::rex_pool_table _rexpool( system_account, system_account.value );
+            return rex_system_initialized() && _rexpool.begin()->total_rex.amount > 0;
          }
 
          // Actions:
@@ -909,6 +947,16 @@ namespace eosiosystem {
          [[eosio::action]]
          void activate( const eosio::checksum256& feature_digest );
 
+         /**
+          * Logging for actions resulting in system fees.
+          *
+          * @param protocol - name of protocol fees were earned from.
+          * @param fee - the amount of fees collected by system.
+          * @param memo - (optional) the memo associated with the action.
+          */
+         [[eosio::action]]
+         void logsystemfee( const name& protocol, const asset& fee, const std::string& memo );
+
          // functions defined in delegate_bandwidth.cpp
 
          /**
@@ -968,12 +1016,9 @@ namespace eosiosystem {
           * @param from - owner account name,
           * @param amount - amount of tokens taken out of 'from' REX fund.
           *
-          * @pre A voting requirement must be satisfied before action can be executed.
-          * @pre User must vote for at least 21 producers or delegate vote to proxy before buying REX.
-          *
           * @post User votes are updated following this action.
           * @post Tokens used in purchase are added to user's voting power.
-          * @post Bought REX cannot be sold before 4 days counting from end of day of purchase.
+          * @post Bought REX cannot be sold before {num_of_maturity_buckets} days counting from end of day of purchase.
           */
          [[eosio::action]]
          void buyrex( const name& from, const asset& amount );
@@ -987,12 +1032,9 @@ namespace eosiosystem {
           * @param from_net - amount of tokens to be unstaked from NET bandwidth and used for REX purchase,
           * @param from_cpu - amount of tokens to be unstaked from CPU bandwidth and used for REX purchase.
           *
-          * @pre A voting requirement must be satisfied before action can be executed.
-          * @pre User must vote for at least 21 producers or delegate vote to proxy before buying REX.
-          *
           * @post User votes are updated following this action.
           * @post Tokens used in purchase are added to user's voting power.
-          * @post Bought REX cannot be sold before 4 days counting from end of day of purchase.
+          * @post Bought REX cannot be sold before {num_of_maturity_buckets} days counting from end of day of purchase.
           */
          [[eosio::action]]
          void unstaketorex( const name& owner, const name& receiver, const asset& from_net, const asset& from_cpu );
@@ -1121,7 +1163,7 @@ namespace eosiosystem {
          void rexexec( const name& user, uint16_t max );
 
          /**
-          * Consolidate action, consolidates REX maturity buckets into one bucket that can be sold after 4 days
+          * Consolidate action, consolidates REX maturity buckets into one bucket that can be sold after {num_of_maturity_buckets} days
           * starting from the end of the day.
           *
           * @param owner - REX owner account name.
@@ -1133,7 +1175,7 @@ namespace eosiosystem {
           * Mvtosavings action, moves a specified amount of REX into savings bucket. REX savings bucket
           * never matures. In order for it to be sold, it has to be moved explicitly
           * out of that bucket. Then the moved amount will have the regular maturity
-          * period of 4 days starting from the end of the day.
+          * period of {num_of_maturity_buckets} days starting from the end of the day.
           *
           * @param owner - REX owner account name.
           * @param rex - amount of REX to be moved.
@@ -1143,7 +1185,7 @@ namespace eosiosystem {
 
          /**
           * Mvfrsavings action, moves a specified amount of REX out of savings bucket. The moved amount
-          * will have the regular REX maturity period of 4 days.
+          * will have the regular REX maturity period of {num_of_maturity_buckets} days.
           *
           * @param owner - REX owner account name.
           * @param rex - amount of REX to be moved.
@@ -1164,6 +1206,29 @@ namespace eosiosystem {
           */
          [[eosio::action]]
          void closerex( const name& owner );
+
+         /**
+          * Facilitates the modification of REX maturity buckets
+          *
+          * @param num_of_maturity_buckets - used to calculate maturity time of purchase REX tokens from end of the day UTC.
+          * @param sell_matured_rex - if true, matured REX is sold immediately.
+          *                           https://github.com/eosnetworkfoundation/eos-system-contracts/issues/134
+          * @param buy_rex_to_savings - if true, buying REX is moved immediately to REX savings.
+          *                             https://github.com/eosnetworkfoundation/eos-system-contracts/issues/135
+          */
+         [[eosio::action]]
+         void setrexmature(const std::optional<uint32_t> num_of_maturity_buckets, const std::optional<bool> sell_matured_rex, const std::optional<bool> buy_rex_to_savings );
+         
+         /**
+          * Donatetorex action, donates funds to REX, increases REX pool return buckets
+          * Executes inline transfer from payer to system contract of tokens will be executed.
+          *
+          * @param payer - the payer of donated funds.
+          * @param quantity - the quantity of tokens to donated to REX with.
+          * @param memo - the memo string to accompany the transaction.
+          */
+         [[eosio::action]]
+         void donatetorex( const name& payer, const asset& quantity, const std::string& memo );
 
          /**
           * Undelegate bandwidth action, decreases the total tokens delegated by `from` to `receiver` and/or
@@ -1238,9 +1303,10 @@ namespace eosiosystem {
           * @param quantity - the quantity of tokens to buy ram with.
           * @param bytes - the quantity of ram to buy specified in bytes.
           * @param ram_bytes - the ram bytes held by receiver after the action.
+          * @param fee - the fee to be paid for the ram sold.
           */
          [[eosio::action]]
-         void logbuyram( const name& payer, const name& receiver, const asset& quantity, int64_t bytes, int64_t ram_bytes );
+         void logbuyram( const name& payer, const name& receiver, const asset& quantity, int64_t bytes, int64_t ram_bytes, const asset& fee );
 
          /**
           * Sell ram action, reduces quota by bytes and then performs an inline transfer of tokens
@@ -1259,9 +1325,10 @@ namespace eosiosystem {
           * @param quantity - the quantity of tokens to sell ram with.
           * @param bytes - the quantity of ram to sell specified in bytes.
           * @param ram_bytes - the ram bytes held by account after the action.
+          * @param fee - the fee to be paid for the ram sold.
           */
          [[eosio::action]]
-         void logsellram( const name& account, const asset& quantity, int64_t bytes, int64_t ram_bytes );
+         void logsellram( const name& account, const asset& quantity, int64_t bytes, int64_t ram_bytes, const asset& fee );
 
          /**
           * Transfer ram action, reduces sender's quota by bytes and increase receiver's quota by bytes.
@@ -1283,6 +1350,17 @@ namespace eosiosystem {
           */
          [[eosio::action]]
          action_return_ramtransfer ramburn( const name& owner, int64_t bytes, const std::string& memo );
+
+         /**
+          * Buy RAM and immediately burn RAM.
+          * An inline transfer from payer to system contract of tokens will be executed.
+          *
+          * @param payer - the payer of buy RAM & burn.
+          * @param quantity - the quantity of tokens to buy RAM & burn with.
+          * @param memo - the memo string to accompany the transaction.
+          */
+         [[eosio::action]]
+         action_return_buyram buyramburn( const name& payer, const asset& quantity, const std::string& memo );
 
          /**
           * Logging for ram changes
@@ -1349,7 +1427,7 @@ namespace eosiosystem {
          /**
           * Action to permanently transition to Savanna consensus.
           * Create the first generation of finalizer policy and activate
-          * the policy by using `set_finalizers` host function 
+          * the policy by using `set_finalizers` host function
           *
           * @pre Require the authority of the contract itself
           * @pre A sufficient numner of the top 21 block producers have registered a finalizer key
@@ -1453,10 +1531,10 @@ namespace eosiosystem {
 
          /**
           * Update the vote weight for the producers or proxy `voter_name` currently votes for. This will also
-          * update the `staked` value for the `voter_name` by checking `rexbal` and all delegated NET and CPU. 
-          * 
+          * update the `staked` value for the `voter_name` by checking `rexbal` and all delegated NET and CPU.
+          *
           * @param voter_name - the account to update the votes for,
-          * 
+          *
           * @post the voter.staked will be updated
           * @post previously voted for producers vote weight will be updated with new weight
           * @post previously voted for proxy vote weight will be updated with new weight
@@ -1578,6 +1656,60 @@ namespace eosiosystem {
          void setinflation( int64_t annual_rate, int64_t inflation_pay_factor, int64_t votepay_factor );
 
          /**
+          * Change how inflated or vested tokens will be distributed based on the following structure.
+          *
+          * @param inflation_pay_factor - Inverse of the fraction of the inflation used to reward block producers.
+          *     The remaining inflation will be sent to the `eosio.saving` account.
+          *     (eg. For 20% of inflation going to block producer rewards   => inflation_pay_factor = 50000
+          *          For 100% of inflation going to block producer rewards  => inflation_pay_factor = 10000).
+          * @param votepay_factor - Inverse of the fraction of the block producer rewards to be distributed proportional to blocks produced.
+          *     The remaining rewards will be distributed proportional to votes received.
+          *     (eg. For 25% of block producer rewards going towards block pay => votepay_factor = 40000
+          *          For 75% of block producer rewards going towards block pay => votepay_factor = 13333).
+          */
+         [[eosio::action]]
+         void setpayfactor( int64_t inflation_pay_factor, int64_t votepay_factor );
+
+         /**
+          * Set the schedule for pre-determined annual rate changes.
+          *
+          * @param start_time - the time to start the schedule.
+          * @param continuous_rate - the inflation or distribution rate of the core token supply.
+          *     (eg. For 5% => 0.05
+          *          For 1.5% => 0.015)
+          */
+         [[eosio::action]]
+         void setschedule( const time_point_sec start_time, double continuous_rate );
+
+         /**
+          * Delete the schedule for pre-determined annual rate changes.
+          *
+          * @param start_time - the time to start the schedule.
+          */
+         [[eosio::action]]
+         void delschedule( const time_point_sec start_time );
+
+         /**
+          * Executes the next schedule for pre-determined annual rate changes.
+          *
+          * Start time of the schedule must be in the past.
+          *
+          * Can be executed by any account.
+          */
+         [[eosio::action]]
+         void execschedule();
+
+         /**
+          * Facilitates the removal of vested staked tokens from an account, ensuring that these tokens are reallocated to the system's pool.
+          *
+          * @param account - the target account from which tokens are to be unvested.
+          * @param unvest_net_quantity - the amount of NET tokens to unvest.
+          * @param unvest_cpu_quantity - the amount of CPU tokens to unvest.
+          */
+         [[eosio::action]]
+         void unvest(const name account, const asset unvest_net_quantity, const asset unvest_cpu_quantity);
+
+         /**
           * Configure the `power` market. The market becomes available the first time this
           * action is invoked.
           */
@@ -1630,6 +1762,7 @@ namespace eosiosystem {
          using setacctnet_action = eosio::action_wrapper<"setacctnet"_n, &system_contract::setacctnet>;
          using setacctcpu_action = eosio::action_wrapper<"setacctcpu"_n, &system_contract::setacctcpu>;
          using activate_action = eosio::action_wrapper<"activate"_n, &system_contract::activate>;
+         using logsystemfee_action = eosio::action_wrapper<"logsystemfee"_n, &system_contract::logsystemfee>;
          using delegatebw_action = eosio::action_wrapper<"delegatebw"_n, &system_contract::delegatebw>;
          using deposit_action = eosio::action_wrapper<"deposit"_n, &system_contract::deposit>;
          using withdraw_action = eosio::action_wrapper<"withdraw"_n, &system_contract::withdraw>;
@@ -1650,6 +1783,7 @@ namespace eosiosystem {
          using mvfrsavings_action = eosio::action_wrapper<"mvfrsavings"_n, &system_contract::mvfrsavings>;
          using consolidate_action = eosio::action_wrapper<"consolidate"_n, &system_contract::consolidate>;
          using closerex_action = eosio::action_wrapper<"closerex"_n, &system_contract::closerex>;
+         using donatetorex_action = eosio::action_wrapper<"donatetorex"_n, &system_contract::donatetorex>;
          using undelegatebw_action = eosio::action_wrapper<"undelegatebw"_n, &system_contract::undelegatebw>;
          using buyram_action = eosio::action_wrapper<"buyram"_n, &system_contract::buyram>;
          using buyrambytes_action = eosio::action_wrapper<"buyrambytes"_n, &system_contract::buyrambytes>;
@@ -1658,6 +1792,7 @@ namespace eosiosystem {
          using logsellram_action = eosio::action_wrapper<"logsellram"_n, &system_contract::logsellram>;
          using ramtransfer_action = eosio::action_wrapper<"ramtransfer"_n, &system_contract::ramtransfer>;
          using ramburn_action = eosio::action_wrapper<"ramburn"_n, &system_contract::ramburn>;
+         using buyramburn_action = eosio::action_wrapper<"buyramburn"_n, &system_contract::buyramburn>;
          using logramchange_action = eosio::action_wrapper<"logramchange"_n, &system_contract::logramchange>;
          using refund_action = eosio::action_wrapper<"refund"_n, &system_contract::refund>;
          using regproducer_action = eosio::action_wrapper<"regproducer"_n, &system_contract::regproducer>;
@@ -1677,35 +1812,30 @@ namespace eosiosystem {
          using setalimits_action = eosio::action_wrapper<"setalimits"_n, &system_contract::setalimits>;
          using setparams_action = eosio::action_wrapper<"setparams"_n, &system_contract::setparams>;
          using setinflation_action = eosio::action_wrapper<"setinflation"_n, &system_contract::setinflation>;
+         using setpayfactor_action = eosio::action_wrapper<"setpayfactor"_n, &system_contract::setpayfactor>;
          using cfgpowerup_action = eosio::action_wrapper<"cfgpowerup"_n, &system_contract::cfgpowerup>;
          using powerupexec_action = eosio::action_wrapper<"powerupexec"_n, &system_contract::powerupexec>;
          using powerup_action = eosio::action_wrapper<"powerup"_n, &system_contract::powerup>;
+         using execschedule_action = eosio::action_wrapper<"execschedule"_n, &system_contract::execschedule>;
+         using setschedule_action = eosio::action_wrapper<"setschedule"_n, &system_contract::setschedule>;
+         using delschedule_action = eosio::action_wrapper<"delschedule"_n, &system_contract::delschedule>;
+         using unvest_action = eosio::action_wrapper<"unvest"_n, &system_contract::unvest>;
 
       private:
-         // Implementation details:
-
-         static symbol get_core_symbol( const rammarket& rm ) {
-            auto itr = rm.find(ramcore_symbol.raw());
-            check(itr != rm.end(), "system contract must first be initialized");
-            return itr->quote.balance.symbol;
-         }
-
          //defined in eosio.system.cpp
          static eosio_global_state get_default_parameters();
          static eosio_global_state4 get_default_inflation_parameters();
          symbol core_symbol()const;
          void update_ram_supply();
+         void channel_to_system_fees( const name& from, const asset& amount );
+         bool execute_next_schedule();
 
          // defined in rex.cpp
          void runrex( uint16_t max );
          void update_rex_pool();
          void update_resource_limits( const name& from, const name& receiver, int64_t delta_net, int64_t delta_cpu );
-         void check_voting_requirement( const name& owner,
-                                        const char* error_msg = "must vote for at least 21 producers or for a proxy before buying REX" )const;
          rex_order_outcome fill_rex_order( const rex_balance_table::const_iterator& bitr, const asset& rex );
          asset update_rex_account( const name& owner, const asset& proceeds, const asset& unstake_quant, bool force_vote_update = false );
-         void channel_to_rex( const name& from, const asset& amount, bool required = false );
-         void channel_namebid_to_rex( const int64_t highest_bid );
          template <typename T>
          int64_t rent_rex( T& table, const name& from, const name& receiver, const asset& loan_payment, const asset& loan_fund );
          template <typename T>
@@ -1715,18 +1845,19 @@ namespace eosiosystem {
          void transfer_from_fund( const name& owner, const asset& amount );
          void transfer_to_fund( const name& owner, const asset& amount );
          bool rex_loans_available()const;
-         bool rex_system_initialized()const { return _rexpool.begin() != _rexpool.end(); }
-         bool rex_available()const { return rex_system_initialized() && _rexpool.begin()->total_rex.amount > 0; }
-         static time_point_sec get_rex_maturity();
+         static time_point_sec get_rex_maturity(const name& system_account_name = "eosio"_n );
          asset add_to_rex_balance( const name& owner, const asset& payment, const asset& rex_received );
          asset add_to_rex_pool( const asset& payment );
          void add_to_rex_return_pool( const asset& fee );
          void process_rex_maturities( const rex_balance_table::const_iterator& bitr );
+         void process_sell_matured_rex( const name owner );
+         void process_buy_rex_to_savings( const name owner, const asset rex );
          void consolidate_rex_balance( const rex_balance_table::const_iterator& bitr,
                                        const asset& rex_in_sell_order );
          int64_t read_rex_savings( const rex_balance_table::const_iterator& bitr );
          void put_rex_savings( const rex_balance_table::const_iterator& bitr, int64_t rex );
          void update_rex_stake( const name& voter );
+         void sell_rex( const name& from, const asset& rex );
 
          void add_loan_to_rex_pool( const asset& payment, int64_t rented_tokens, bool new_loan );
          void remove_loan_from_rex_pool( const rex_loan& loan );
@@ -1736,10 +1867,12 @@ namespace eosiosystem {
          // defined in delegate_bandwidth.cpp
          void changebw( name from, const name& receiver,
                         const asset& stake_net_quantity, const asset& stake_cpu_quantity, bool transfer );
-         void update_voting_power( const name& voter, const asset& total_update );
+         int64_t update_voting_power( const name& voter, const asset& total_update );
          void set_resource_ram_bytes_limits( const name& owner );
          int64_t reduce_ram( const name& owner, int64_t bytes );
          int64_t add_ram( const name& owner, int64_t bytes );
+         void update_stake_delegated( const name from, const name receiver, const asset stake_net_delta, const asset stake_cpu_delta );
+         void update_user_resources( const name from, const name receiver, const asset stake_net_delta, const asset stake_cpu_delta );
 
          // defined in voting.cpp
          void register_producer( const name& producer, const eosio::block_signing_authority& producer_authority, const std::string& url, uint16_t location );
